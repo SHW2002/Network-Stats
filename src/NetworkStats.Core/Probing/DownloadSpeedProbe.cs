@@ -51,7 +51,8 @@ public sealed class DownloadSpeedProbe
                 .ConfigureAwait(false);
             status = (int)response.StatusCode;
             finalUrl = response.RequestMessage?.RequestUri?.AbsoluteUri ?? options.Url;
-            if (!response.IsSuccessStatusCode) return Finish(DownloadCompletion.Failed, $"HTTP {status} {response.ReasonPhrase}");
+            if (HttpResponseFailure.Describe(response) is { } failure)
+                return Finish(DownloadCompletion.Failed, failure);
             transfer.Start();
             await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token).ConfigureAwait(false);
             while (received < options.ByteLimit)

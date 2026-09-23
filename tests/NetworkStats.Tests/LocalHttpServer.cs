@@ -39,6 +39,7 @@ internal sealed class LocalHttpServer : IAsyncDisposable
                 LastRawTarget = context.Features.Get<IHttpRequestFeature>()?.RawTarget;
                 LastAcceptEncoding = context.Request.Headers.AcceptEncoding;
                 if (await DownloadTestEndpoints.HandleAsync(context)) return;
+                if (await HttpFailureTests.HandleAsync(context)) return;
                 switch (context.Request.Path.Value)
                 {
                     case "/slow":

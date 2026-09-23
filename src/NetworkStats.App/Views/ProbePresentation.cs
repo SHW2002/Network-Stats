@@ -7,6 +7,9 @@ internal static class ProbePresentation
     public static string Speed(ProbeResult? sample) => sample switch
     {
         null => "等待 URL 测速",
+        { Status: ProbeStatus.Unreachable, HttpStatus: 403 } => "访问被拒绝 · 403",
+        { Status: ProbeStatus.Unreachable, HttpStatus: 401 } => "需要认证 · 401",
+        { Status: ProbeStatus.Unreachable, HttpStatus: 429 } => "请求受限 · 429",
         { Status: ProbeStatus.Unreachable } => "不可访问",
         { Transfer: null } => "未记录下载速度",
         { Transfer.BytesReceived: 0 } => "无响应体",

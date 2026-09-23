@@ -131,7 +131,13 @@ internal sealed class SpeedTestPage : ContentPage
                 DownloadCompletion.ByteLimit => "测速完成 · 达到 1 MB 采样上限",
                 DownloadCompletion.TimeLimit => $"测速完成 · 达到 {_timeLimitSeconds} 秒时限",
                 _ => "测速完成 · URL 响应体已读完"
-            } : result.Completion == DownloadCompletion.EndOfFile ? "URL 响应体为空" : "测速失败";
+            } : result.Completion == DownloadCompletion.EndOfFile ? "URL 响应体为空" : result.HttpStatus switch
+            {
+                403 => "访问被拒绝 · HTTP 403",
+                401 => "需要身份认证 · HTTP 401",
+                429 => "请求受限 · HTTP 429",
+                _ => "测速失败"
+            };
             Ui.TextColor(_status, result.Succeeded ? Ui.Green : result.Completion == DownloadCompletion.EndOfFile ? Ui.Muted : Ui.Red);
             _quality.IsVisible = result.Succeeded && result.ShortSample;
             if (!result.Succeeded) _speed.Text = "— KB/s";
