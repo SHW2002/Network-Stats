@@ -22,8 +22,8 @@ internal static class UrlProbeTests
         var transfer = sample.Transfer!;
         Check.That(transfer.Url == site.Url && Math.Abs(transfer.TotalMilliseconds - sample.LatencyMs) < 1,
             "Displayed latency differs from measured request time");
-        Check.That(Math.Abs(transfer.MegabytesPerSecond - transfer.BytesReceived / 1000.0 / transfer.TotalMilliseconds) < 0.000001,
-            "Access rate did not use total request time");
+        Check.That(transfer.TransferMilliseconds is >= 600 && transfer.MegabytesPerSecond is > 0,
+            "Response-body duration or download speed was not saved");
         var redirect = await Probe.CheckAsync(new("redirect", server.Address + "/download-redirect"), Direct, Settings, default);
         Check.That(redirect.Transfer is { BytesReceived: DownloadTestEndpoints.Size } && redirect.Transfer.Url.EndsWith("/download"),
             "Redirect lost transfer data or final URL");
@@ -55,16 +55,21 @@ internal static class UrlProbeTests
         Directory.CreateDirectory(historyDirectory);
         // Exact old schema: no transfer field. A legacy success must not acquire an invented speed.
         await File.WriteAllTextAsync(Path.Combine(historyDirectory, now.UtcDateTime.ToString("yyyy-MM-dd") + ".jsonl"),
-            $$"""{"checkedAt":"{{now:O}}","siteId":"legacy","routeId":"direct","status":"Healthy","latencyMs":123,"httpStatus":200,"error":null}""" + "\n");
+            $$"""{"checkedAt":"{{now:O}}","siteId":"legacy","routeId":"direct","status":"Healthy","latencyMs":123,"httpStatus":200,"error":null}""" + "\n" +
+            $$$"""{"checkedAt":"{{{now:O}}}","siteId":"version11","routeId":"direct","status":"Healthy","latencyMs":250,"httpStatus":200,"error":null,"transfer":{"bytesReceived":125000,"totalMilliseconds":250.5,"completion":"EndOfFile","url":"https://example.com/page?q=1"}}""" + "\n");
         var history = new HistoryStore(directory.Path);
         await history.LoadAsync(1);
         var sample = new ProbeResult(now, "new", "direct", ProbeStatus.Healthy, 250, 200, null,
-            new UrlTransfer(125000, 250.5, DownloadCompletion.EndOfFile, "https://example.com/page?q=1"));
+            new UrlTransfer(125000, 250.5, DownloadCompletion.EndOfFile, "https://example.com/page?q=1", 100.5));
         await history.RecordAsync([sample], 1, default);
         var restored = new HistoryStore(directory.Path);
         await restored.LoadAsync(1);
         var samples = restored.Query(now.AddMinutes(-1), DateTimeOffset.UtcNow);
         Check.That(samples.Single(item => item.SiteId == "legacy").Transfer is null, "Old history gained false speed data");
+        var oldTransfer = samples.Single(item => item.SiteId == "version11").Transfer!;
+        Check.That(oldTransfer.BytesReceived == 125000 && oldTransfer.TotalMilliseconds == 250.5 &&
+            oldTransfer.TransferMilliseconds is null && oldTransfer.MegabytesPerSecond is null,
+            "Version 1.1 total-time average was reinterpreted as body download speed");
         Check.That(samples.Single(item => item.SiteId == "new") == sample, "URL transfer history did not survive restart");
         Check.That(restored.Warning is null, "Compatible history produced a warning");
     }

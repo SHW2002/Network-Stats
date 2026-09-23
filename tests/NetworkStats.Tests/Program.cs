@@ -5,6 +5,7 @@ using NetworkStats.Tests;
     ("直连显式绕过系统代理", ProbeTests.DirectBypassesSystemProxyAsync),
     ("绿黄红判定、重定向和等待响应体", ProbeTests.ColorsRedirectAndBodyAsync),
     ("配置 URL 的字节计量、总耗时与慢速判色", UrlProbeTests.ExactUrlAndBodyTimingAsync),
+    ("响应等待独立计时、响应体下载速度和小样本标记", TransferTimingTests.SeparateWaitingAndDownloadingAsync),
     ("URL 自动采样的流量时限、空响应与断流", UrlProbeTests.LimitsAndFailuresAsync),
     ("访问速度历史恢复及旧版记录兼容", UrlProbeTests.HistoryCompatibilityAsync),
     ("超时与主动取消分别处理", ProbeTests.TimeoutAndCancellationAsync),

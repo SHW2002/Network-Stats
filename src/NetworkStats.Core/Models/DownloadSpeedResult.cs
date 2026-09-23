@@ -10,9 +10,12 @@ public sealed record DownloadProgress(long BytesReceived, TimeSpan TransferTime,
     public double MegabytesPerSecond => TransferTime.TotalSeconds > 0
         ? BytesReceived / 1_000_000.0 / TransferTime.TotalSeconds : 0;
     public double MegabitsPerSecond => MegabytesPerSecond * 8;
-    public double AccessMegabytesPerSecond => TotalTime.TotalSeconds > 0
-        ? BytesReceived / 1_000_000.0 / TotalTime.TotalSeconds : 0;
-    public double AccessMegabitsPerSecond => AccessMegabytesPerSecond * 8;
+    public TimeSpan ResponseWaitTime => TimeSpan.FromTicks(Math.Max(0, TotalTime.Ticks - TransferTime.Ticks));
+    public bool ShortSample => IsShortSample(BytesReceived, TransferTime.TotalMilliseconds);
+
+    // 小响应或短时间采样容易受缓冲影响，不应当作持续下载能力。
+    public static bool IsShortSample(long bytesReceived, double transferMilliseconds) =>
+        bytesReceived > 0 && (bytesReceived < 1_000_000 || transferMilliseconds < 2000);
 }
 
 public sealed record DownloadSpeedResult(
@@ -20,5 +23,5 @@ public sealed record DownloadSpeedResult(
     int? HttpStatus, string? Error)
 {
     public bool Succeeded => Completion != DownloadCompletion.Failed && Download.BytesReceived > 0;
-    public bool ShortSample => Download.BytesReceived < 1_000_000 || Download.TransferTime.TotalSeconds < 2;
+    public bool ShortSample => Download.ShortSample;
 }

@@ -57,6 +57,7 @@ internal static class PackageVerifier
             await SpeedTestVerifier.VerifyAsync(page, services.GetRequiredService<MonitorEngine>());
             report.Add("URL speed: configured URL automatically measured and speed rendered on main timeline");
             report.Add("URL speed: single-site page measured the same configured path and query");
+            report.Add("Download metrics: body throughput, separate timings, small-sample hints and legacy history verified");
             await services.GetRequiredService<MonitorEngine>().StopAsync();
             report.Insert(0, "PASS");
         }

@@ -14,11 +14,13 @@ internal static class DownloadTestEndpoints
         {
             case "/download":
             case "/download-slow":
+            case "/download-late-headers":
+                if (context.Request.Path == "/download-late-headers") await Task.Delay(1000, context.RequestAborted);
                 context.Response.ContentLength = Size;
                 await context.Response.StartAsync(context.RequestAborted);
                 for (var i = 0; i < 8; i++)
                 {
-                    if (context.Request.Path == "/download-slow") await Task.Delay(80, context.RequestAborted);
+                    if (context.Request.Path != "/download") await Task.Delay(80, context.RequestAborted);
                     await context.Response.Body.WriteAsync(new byte[64 * 1024], context.RequestAborted);
                     await context.Response.Body.FlushAsync(context.RequestAborted);
                 }

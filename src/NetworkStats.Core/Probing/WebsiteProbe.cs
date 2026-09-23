@@ -18,7 +18,7 @@ public sealed class WebsiteProbe(DownloadSpeedProbe? downloads = null)
         var elapsed = (long)result.Download.TotalTime.TotalMilliseconds;
         var accessible = result.HttpStatus is >= 200 and < 300 && result.Completion != DownloadCompletion.Failed;
         var transfer = new UrlTransfer(result.Download.BytesReceived, result.Download.TotalTime.TotalMilliseconds,
-            result.Completion, result.Url);
+            result.Completion, result.Url, result.Download.TransferTime.TotalMilliseconds);
         return new(checkedAt, site.Id, route.Id,
             !accessible ? ProbeStatus.Unreachable : elapsed > settings.SlowThresholdMs ? ProbeStatus.Slow : ProbeStatus.Healthy,
             elapsed, result.HttpStatus, accessible ? null : result.Error, transfer);

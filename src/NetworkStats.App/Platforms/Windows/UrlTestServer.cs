@@ -37,6 +37,7 @@ internal sealed class UrlTestServer : IAsyncDisposable
             if (request != $"GET {Target} HTTP/1.1") Interlocked.Exchange(ref _unexpectedTarget, 1);
             Interlocked.Increment(ref _requests);
             while (await reader.ReadLineAsync(token) is { Length: > 0 }) { }
+            await Task.Delay(600, token); // 响应头之前的等待不应降低响应体下载速度。
             await stream.WriteAsync(Encoding.ASCII.GetBytes(
                 $"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {BodySize}\r\nConnection: close\r\n\r\n"), token);
             var block = new byte[64 * 1024];

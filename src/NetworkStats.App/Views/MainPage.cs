@@ -12,7 +12,7 @@ public sealed class MainPage : ContentPage
     private readonly Label _status = Ui.Text("正在启动", 12, Ui.Accent, true);
     private readonly Label _schedule = Ui.Text("正在准备首次探测…", 12, Ui.Muted);
     private readonly Label _warning = Ui.Text("", 12, Ui.Red);
-    private readonly Label _detail = Ui.Text("点击任意色块，查看该 URL 在该分钟的访问速度、耗时和下载量。", 12, Ui.Muted);
+    private readonly Label _detail = Ui.Text("点击任意色块，查看该 URL 的下载速度、访问总耗时、响应等待和下载量。", 12, Ui.Muted);
     private readonly Label _policy = Ui.Text("", 11, Ui.Muted);
     private readonly Button _probe = Ui.Button("立即测速", true);
     private readonly Button _pause = Ui.Button("暂停");
@@ -31,6 +31,9 @@ public sealed class MainPage : ContentPage
     private int _minutes = 60;
     internal bool HasDrawnTimelines => _routeViews.Count > 0 && _routeViews.All(route => route.HasDrawn);
     internal bool HasUrlSpeedReadings => _routeViews.Any(route => route.HasSpeedReadings);
+    internal bool HasShortSampleHints => _routeViews.Any(route => route.HasShortSampleHints);
+    internal string? GetSpeedText(string siteId, string routeId) =>
+        _routeViews.Select(route => route.GetSpeedText(siteId, routeId)).FirstOrDefault(text => text is not null);
 
     public MainPage(MonitorEngine monitor, DownloadSpeedProbe downloadProbe)
     {
@@ -56,7 +59,7 @@ public sealed class MainPage : ContentPage
         {
             Spacing = 7,
             Children = { Ui.Text($"NETWORK STATS · v{AppInfo.Current.VersionString}", 11, Ui.Accent, true), Ui.Text("网络观测站", 28, bold: true),
-                Ui.Text($"{PlatformName()} · 自动测量每个 URL 的访问速度", 12, Ui.Muted) }
+                Ui.Text($"{PlatformName()} · 每个 URL 的下载速度与访问总耗时", 12, Ui.Muted) }
         });
         header.Add(settings, 1);
         settings.VerticalOptions = LayoutOptions.Center;
@@ -166,7 +169,7 @@ public sealed class MainPage : ContentPage
         _pause.Text = _monitor.UserPaused ? "继续探测" : "暂停";
         _warning.Text = snapshot.Worker.Error ?? snapshot.Warning ?? "";
         _warning.IsVisible = !string.IsNullOrEmpty(_warning.Text);
-        _policy.Text = $"绿色 ≤ {snapshot.Settings.SlowThresholdMs:N0} ms · 黄色 > {snapshot.Settings.SlowThresholdMs:N0} ms · 超时 {snapshot.Settings.TimeoutSeconds} 秒 · 每 {snapshot.Settings.IntervalSeconds} 秒采样 · 历史保留 {snapshot.Settings.RetentionHours} 小时\n直接读取每个配置 URL 的响应体，每次最多 1 MB；速度 = 下载量 / 请求总耗时（含连接和响应等待），不加载页面内的图片或脚本。";
+        _policy.Text = $"总耗时：绿色 ≤ {snapshot.Settings.SlowThresholdMs:N0} ms · 黄色 > {snapshot.Settings.SlowThresholdMs:N0} ms · 超时 {snapshot.Settings.TimeoutSeconds} 秒 · 每 {snapshot.Settings.IntervalSeconds} 秒采样 · 历史保留 {snapshot.Settings.RetentionHours} 小时\n下载速度 = 响应体字节数 / 响应体读取时间，连接和响应等待另计入总耗时。每个 URL 最多读取 1 MB；不足 1 MB 或读取不足 2 秒时标注样本较小。";
     }
 
     private void SelectCell(CellSelection selection)

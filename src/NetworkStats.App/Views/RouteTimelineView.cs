@@ -16,6 +16,9 @@ internal sealed class RouteTimelineView : ContentView
     private bool _needsScroll = true;
     internal bool HasDrawn => _rows.Count > 0 && _rows.All(row => row.Drawing.HasDrawn);
     internal bool HasSpeedReadings => _rows.Any(row => row.Summary.HasSpeedReading);
+    internal bool HasShortSampleHints => _rows.Any(row => row.Summary.HasShortSampleHint);
+    internal string? GetSpeedText(string siteId, string routeId) => routeId == _route.Id
+        ? _rows.FirstOrDefault(row => row.Site.Id == siteId).Summary?.DisplayedSpeed : null;
 
     public RouteTimelineView(RouteDefinition route, SiteDefinition[] sites, Action<CellSelection> select)
     {
