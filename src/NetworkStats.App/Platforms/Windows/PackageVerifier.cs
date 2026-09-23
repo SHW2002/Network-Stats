@@ -58,6 +58,8 @@ internal static class PackageVerifier
             report.Add("URL speed: configured URL automatically measured and speed rendered on main timeline");
             report.Add("URL speed: single-site page measured the same configured path and query");
             report.Add("Download metrics: body throughput, separate timings, small-sample hints and legacy history verified");
+            await PreferenceVerifier.VerifyAsync(app, page, services.GetRequiredService<MonitorEngine>(), native);
+            report.Add("Preferences: light/dark/system themes, saved settings and close-to-minimize verified");
             await services.GetRequiredService<MonitorEngine>().StopAsync();
             report.Insert(0, "PASS");
         }
@@ -69,5 +71,14 @@ internal static class PackageVerifier
             Environment.ExitCode = 1;
         }
         await File.WriteAllLinesAsync(ReportPath!, report);
+        if (Environment.ExitCode == 0)
+        {
+            var app = (App)Microsoft.Maui.Controls.Application.Current!;
+            var native = (Microsoft.UI.Xaml.Window)app.Windows.Single().Handler!.PlatformView!;
+            var message = services.GetRequiredService<MonitorEngine>().Settings.MinimizeOnClose
+                ? Native.RegisterWindowMessage(TrayIcon.ExitMessageName) : 0x0010u;
+            // 脚本必须等到真正退出：分别验证普通关闭和托盘的显式退出可绕过最小化设置。
+            Native.PostMessage(WinRT.Interop.WindowNative.GetWindowHandle(native), message, 0, 0);
+        }
     }
 }

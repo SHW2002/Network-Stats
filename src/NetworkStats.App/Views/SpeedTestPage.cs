@@ -9,8 +9,8 @@ internal sealed class SpeedTestPage : ContentPage
     private const long ByteLimit = WebsiteProbe.SampleByteLimit;
     private readonly MonitorEngine _monitor;
     private readonly DownloadSpeedProbe _probe;
-    private readonly Picker _route = new() { Title = "测速线路", ItemDisplayBinding = new Binding(nameof(RouteDefinition.Name)), TextColor = Ui.Ink };
-    private readonly Picker _site = new() { Title = "目标 URL", ItemDisplayBinding = new Binding(nameof(SiteDefinition.Name)), TextColor = Ui.Ink };
+    private readonly Picker _route = new() { Title = "测速线路", ItemDisplayBinding = new Binding(nameof(RouteDefinition.Name)) };
+    private readonly Picker _site = new() { Title = "目标 URL", ItemDisplayBinding = new Binding(nameof(SiteDefinition.Name)) };
     private readonly Entry _url = Ui.Input("", "从已配置的网站中选择", Keyboard.Url);
     private readonly Label _limits = Ui.Text("", 12, Ui.Muted);
     private readonly Button _start = Ui.Button("开始测速", true);
@@ -21,7 +21,7 @@ internal sealed class SpeedTestPage : ContentPage
     private readonly Label _quality = Ui.Text("样本较小：下载量不足 1 MB 或读取不足 2 秒，速率仅供参考。", 12, Ui.Muted);
     private readonly Label _status = Ui.Text("选择线路后开始下载测速", 14, Ui.Ink);
     private readonly Label _detail = Ui.Text("", 12, Ui.Muted);
-    private readonly ProgressBar _progress = new() { ProgressColor = Ui.Accent };
+    private readonly ProgressBar _progress = new();
     private CancellationTokenSource? _running;
     private int _timeLimitSeconds;
 
@@ -35,7 +35,10 @@ internal sealed class SpeedTestPage : ContentPage
         _monitor = monitor;
         _probe = probe;
         Title = "URL 单项测速";
-        BackgroundColor = Ui.Background;
+        Ui.Bind(this, BackgroundColorProperty, Ui.Background);
+        Ui.ThemePicker(_route);
+        Ui.ThemePicker(_site);
+        Ui.Bind(_progress, ProgressBar.ProgressColorProperty, Ui.Accent);
         _url.IsReadOnly = true;
         _quality.IsVisible = false;
         _site.SelectedIndexChanged += (_, _) => _url.Text = (_site.SelectedItem as SiteDefinition)?.Url ?? "";
@@ -101,7 +104,7 @@ internal sealed class SpeedTestPage : ContentPage
         _start.IsEnabled = _route.IsEnabled = _site.IsEnabled = false;
         _cancel.IsEnabled = true;
         _status.Text = "正在连接…";
-        _status.TextColor = Ui.Ink;
+        Ui.TextColor(_status, Ui.Ink);
         _speed.Text = "— KB/s";
         _bytes.Text = "已接收 0 MB";
         _timings.Text = "访问总耗时 — ms";
@@ -129,14 +132,14 @@ internal sealed class SpeedTestPage : ContentPage
                 DownloadCompletion.TimeLimit => $"测速完成 · 达到 {_timeLimitSeconds} 秒时限",
                 _ => "测速完成 · URL 响应体已读完"
             } : result.Completion == DownloadCompletion.EndOfFile ? "URL 响应体为空" : "测速失败";
-            _status.TextColor = result.Succeeded ? Ui.Green : result.Completion == DownloadCompletion.EndOfFile ? Ui.Muted : Ui.Red;
+            Ui.TextColor(_status, result.Succeeded ? Ui.Green : result.Completion == DownloadCompletion.EndOfFile ? Ui.Muted : Ui.Red);
             _quality.IsVisible = result.Succeeded && result.ShortSample;
             if (!result.Succeeded) _speed.Text = "— KB/s";
             _detail.Text = $"线路：{result.RouteName}\n地址：{result.Url}\n" +
                 (result.Succeeded ? "结果为该 URL 的响应体下载速度，不代表整条线路的最大带宽。" : result.Error);
         }
         catch (OperationCanceledException) { _status.Text = "已取消测速"; _speed.Text = "— KB/s"; _quality.IsVisible = false; }
-        catch (Exception exception) { _status.Text = "无法测速"; _status.TextColor = Ui.Red; _detail.Text = exception.Message; _quality.IsVisible = false; }
+        catch (Exception exception) { _status.Text = "无法测速"; Ui.TextColor(_status, Ui.Red); _detail.Text = exception.Message; _quality.IsVisible = false; }
         finally
         {
             _running = null;

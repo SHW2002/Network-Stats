@@ -12,6 +12,7 @@ public static class SettingsValidator
     public static MonitorSettings Normalize(MonitorSettings settings)
     {
         var errors = new List<string>();
+        if (!Enum.IsDefined(settings.Theme)) errors.Add("主题必须为跟随系统、浅色或深色");
         CheckRange(settings.IntervalSeconds, 10, 3600, "探测间隔（秒）", errors);
         CheckRange(settings.TimeoutSeconds, 1, 60, "超时（秒）", errors);
         CheckRange(settings.SlowThresholdMs, 1, 60000, "慢速阈值（毫秒）", errors);

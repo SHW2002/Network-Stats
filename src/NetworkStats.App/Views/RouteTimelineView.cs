@@ -15,6 +15,7 @@ internal sealed class RouteTimelineView : ContentView
     private int _minutes = 60;
     private bool _needsScroll = true;
     internal bool HasDrawn => _rows.Count > 0 && _rows.All(row => row.Drawing.HasDrawn);
+    internal bool HasDrawnCurrentTheme => HasDrawn && _rows.All(row => row.Drawing.DrawnTheme == Application.Current!.RequestedTheme);
     internal bool HasSpeedReadings => _rows.Any(row => row.Summary.HasSpeedReading);
     internal bool HasShortSampleHints => _rows.Any(row => row.Summary.HasShortSampleHint);
     internal string? GetSpeedText(string siteId, string routeId) => routeId == _route.Id
@@ -110,5 +111,11 @@ internal sealed class RouteTimelineView : ContentView
             _needsScroll = false;
             Dispatcher.Dispatch(async () => await _scroll.ScrollToAsync(_charts.WidthRequest, 0, false));
         }
+    }
+
+    internal void RedrawTheme()
+    {
+        _axisView.Invalidate();
+        foreach (var row in _rows) row.View.Invalidate();
     }
 }

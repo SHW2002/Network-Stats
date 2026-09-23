@@ -7,6 +7,7 @@ internal sealed class TimelineDrawable : IDrawable
     public ProbeResult?[] Samples { get; set; } = new ProbeResult?[60];
     public int SelectedIndex { get; set; } = -1;
     internal bool HasDrawn { get; private set; }
+    internal AppTheme DrawnTheme { get; private set; }
 
     public void Draw(ICanvas canvas, RectF dirtyRect)
     {
@@ -16,17 +17,18 @@ internal sealed class TimelineDrawable : IDrawable
         for (var index = 0; index < Samples.Length; index++)
         {
             var sample = Samples[index];
-            canvas.FillColor = sample is null ? Ui.Empty : Ui.StatusColor(sample.Status);
+            canvas.FillColor = (sample is null ? Ui.Empty : Ui.StatusColor(sample.Status)).Current;
             var rectangle = new RectF(index * step + gap / 2, (dirtyRect.Height - 22) / 2, step - gap, 22);
             canvas.FillRoundedRectangle(rectangle, Math.Min(3, (step - gap) / 2));
             if (SelectedIndex == index)
             {
-                canvas.StrokeColor = Ui.Ink;
+                canvas.StrokeColor = Ui.Ink.Current;
                 canvas.StrokeSize = 1.5f;
                 canvas.DrawRoundedRectangle(new RectF(rectangle.X, rectangle.Y - 3, rectangle.Width, rectangle.Height + 6), 2);
             }
         }
         HasDrawn = true;
+        DrawnTheme = Application.Current!.RequestedTheme;
     }
 }
 
@@ -37,7 +39,7 @@ internal sealed class TimeAxisDrawable : IDrawable
 
     public void Draw(ICanvas canvas, RectF dirtyRect)
     {
-        canvas.FontColor = Ui.Muted;
+        canvas.FontColor = Ui.Muted.Current;
         canvas.FontSize = 10;
         for (var index = 0; index <= 4; index++)
         {

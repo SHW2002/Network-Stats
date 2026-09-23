@@ -11,6 +11,8 @@ public static class CloseNetworkStatsWindow
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int GetWindowText(IntPtr window, StringBuilder text, int maximum);
     [DllImport("user32.dll")] private static extern bool PostMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr GetProp(IntPtr window, string name);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern uint RegisterWindowMessage(string message);
 
     public static bool RequestClose(int processId)
     {
@@ -23,7 +25,12 @@ public static class CloseNetworkStatsWindow
             var title = new StringBuilder(256);
             GetWindowText(window, title, title.Capacity);
             if (title.ToString().StartsWith("Network Stats", StringComparison.Ordinal))
-                sent |= PostMessage(window, 0x0010, IntPtr.Zero, IntPtr.Zero); // WM_CLOSE
+            {
+                // 新版的 WM_CLOSE 可能只最小化；使用与托盘“退出”相同的正常退出入口。
+                var message = GetProp(window, "NetworkStats.ExplicitExit") != IntPtr.Zero
+                    ? RegisterWindowMessage("NetworkStats.ExitForUpdate") : 0x0010u;
+                sent |= PostMessage(window, message, IntPtr.Zero, IntPtr.Zero);
+            }
             return true;
         }, IntPtr.Zero);
         return sent;

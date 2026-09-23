@@ -3,19 +3,9 @@ using NetworkStats.Models;
 
 namespace NetworkStats.App.Views;
 
-internal static class Ui
+internal static partial class Ui
 {
-    public static readonly Color Background = Color.FromArgb("#F5F7FB");
-    public static readonly Color Ink = Color.FromArgb("#172B45");
-    public static readonly Color Muted = Color.FromArgb("#7B889C");
-    public static readonly Color Line = Color.FromArgb("#E7ECF3");
-    public static readonly Color Accent = Color.FromArgb("#496BE8");
-    public static readonly Color Green = Color.FromArgb("#32B58B");
-    public static readonly Color Yellow = Color.FromArgb("#E7B64F");
-    public static readonly Color Red = Color.FromArgb("#E87575");
-    public static readonly Color Empty = Color.FromArgb("#E8EDF4");
-
-    public static Color StatusColor(ProbeStatus? status) => status switch
+    public static ThemeColor StatusColor(ProbeStatus? status) => status switch
     {
         ProbeStatus.Healthy => Green,
         ProbeStatus.Slow => Yellow,
@@ -31,47 +21,39 @@ internal static class Ui
         _ => "无数据"
     };
 
-    public static Label Text(string value, double size = 14, Color? color = null, bool bold = false) => new()
+    public static Label Text(string value, double size = 14, ThemeColor? color = null, bool bold = false)
     {
-        Text = value,
-        FontSize = size,
-        TextColor = color ?? Ink,
-        FontAttributes = bold ? FontAttributes.Bold : FontAttributes.None,
-        VerticalTextAlignment = TextAlignment.Center
-    };
+        var label = new Label { Text = value, FontSize = size,
+            FontAttributes = bold ? FontAttributes.Bold : FontAttributes.None, VerticalTextAlignment = TextAlignment.Center };
+        TextColor(label, color ?? Ink);
+        return label;
+    }
 
-    public static Border Card(View content, double padding = 20) => new()
+    public static Border Card(View content, double padding = 20)
     {
-        Content = content,
-        Padding = padding,
-        BackgroundColor = Colors.White,
-        Stroke = Line,
-        StrokeThickness = 1,
-        StrokeShape = new RoundRectangle { CornerRadius = 16 }
-    };
+        var card = new Border { Content = content, Padding = padding, StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = 16 } };
+        Bind(card, VisualElement.BackgroundColorProperty, Surface);
+        card.SetAppTheme<Brush>(Border.StrokeProperty, new SolidColorBrush(Line.Light), new SolidColorBrush(Line.Dark));
+        return card;
+    }
 
-    public static Button Button(string text, bool primary = false) => new()
+    public static Button Button(string text, bool primary = false)
     {
-        Text = text,
-        TextColor = primary ? Colors.White : Ink,
-        BackgroundColor = primary ? Accent : Color.FromArgb("#EAF0FA"),
-        FontSize = 13,
-        FontAttributes = FontAttributes.Bold,
-        Padding = new Thickness(16, 10),
-        CornerRadius = 10,
-        MinimumHeightRequest = 42
-    };
+        var button = new Button { Text = text, FontSize = 13, FontAttributes = FontAttributes.Bold,
+            Padding = new Thickness(16, 10), CornerRadius = 10, MinimumHeightRequest = 42 };
+        Bind(button, Microsoft.Maui.Controls.Button.TextColorProperty, primary ? White : Ink);
+        Bind(button, VisualElement.BackgroundColorProperty, primary ? PrimaryButton : SecondaryButton);
+        return button;
+    }
 
-    public static Entry Input(string value, string placeholder, Keyboard? keyboard = null) => new()
+    public static Entry Input(string value, string placeholder, Keyboard? keyboard = null)
     {
-        Text = value,
-        Placeholder = placeholder,
-        Keyboard = keyboard ?? Keyboard.Default,
-        TextColor = Ink,
-        PlaceholderColor = Muted,
-        BackgroundColor = Color.FromArgb("#F5F7FB"),
-        FontSize = 14,
-        MinimumHeightRequest = 44,
-        ClearButtonVisibility = ClearButtonVisibility.WhileEditing
-    };
+        var entry = new Entry { Text = value, Placeholder = placeholder, Keyboard = keyboard ?? Keyboard.Default,
+            FontSize = 14, MinimumHeightRequest = 44, ClearButtonVisibility = ClearButtonVisibility.WhileEditing };
+        Bind(entry, Entry.TextColorProperty, Ink);
+        Bind(entry, Entry.PlaceholderColorProperty, Muted);
+        Bind(entry, VisualElement.BackgroundColorProperty, Background);
+        return entry;
+    }
 }

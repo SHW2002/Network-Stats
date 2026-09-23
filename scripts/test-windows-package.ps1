@@ -51,6 +51,9 @@ try {
     $environment['NETWORKSTATS_DIAGNOSTICS_DIRECTORY'] = Join-Path $testDirectory 'logs'
     $block = (($environment.Keys | Sort-Object | ForEach-Object { $_ + '=' + $environment[$_] }) -join "`0") + "`0`0"
     for ($run = 0; $run -le $WarmRuns; $run++) {
+        $settings['theme'] = @('Dark', 'Light', 'System')[$run % 3]
+        $settings['minimizeOnClose'] = ($run % 2 -eq 0)
+        $settings | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $dataDirectory 'settings.json') -Encoding utf8
         $label = if ($run -eq 0) { 'Cold (empty extraction cache)' } else { "Warm $run (reuse extraction cache)" }
         $results.Add($label)
         $testReport = Join-Path $testDirectory "verification-$run.txt"
@@ -67,7 +70,8 @@ try {
                 $report -notcontains 'MAUI: window loaded, native templates applied, timeline drawing completed' -or
                 $report -notcontains 'URL speed: configured URL automatically measured and speed rendered on main timeline' -or
                 $report -notcontains 'URL speed: single-site page measured the same configured path and query' -or
-                $report -notcontains 'Download metrics: body throughput, separate timings, small-sample hints and legacy history verified') {
+                $report -notcontains 'Download metrics: body throughput, separate timings, small-sample hints and legacy history verified' -or
+                $report -notcontains 'Preferences: light/dark/system themes, saved settings and close-to-minimize verified') {
                 throw 'Full window verification failed.'
             }
         } finally { $process.Dispose() }

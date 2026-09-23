@@ -30,6 +30,7 @@ public sealed class MainPage : ContentPage
     private string? _configuration;
     private int _minutes = 60;
     internal bool HasDrawnTimelines => _routeViews.Count > 0 && _routeViews.All(route => route.HasDrawn);
+    internal bool HasDrawnCurrentTheme => _routeViews.Count > 0 && _routeViews.All(route => route.HasDrawnCurrentTheme);
     internal bool HasUrlSpeedReadings => _routeViews.Any(route => route.HasSpeedReadings);
     internal bool HasShortSampleHints => _routeViews.Any(route => route.HasShortSampleHints);
     internal string? GetSpeedText(string siteId, string routeId) =>
@@ -40,7 +41,7 @@ public sealed class MainPage : ContentPage
         _monitor = monitor;
         _downloadProbe = downloadProbe;
         Title = "网络观测站";
-        BackgroundColor = Ui.Background;
+        Ui.Bind(this, BackgroundColorProperty, Ui.Background);
         NavigationPage.SetHasNavigationBar(this, false);
         var settings = Ui.Button("设置");
         settings.Clicked += async (_, _) => await Navigation.PushAsync(new SettingsPage(_monitor));
@@ -65,10 +66,11 @@ public sealed class MainPage : ContentPage
         settings.VerticalOptions = LayoutOptions.Center;
         var range = new Picker
         {
-            Title = "时间范围", FontSize = 12, TextColor = Ui.Ink,
+            Title = "时间范围", FontSize = 12,
             ItemsSource = new[] { "最近 1 小时", "最近 3 小时", "最近 6 小时", "最近 24 小时" }, SelectedIndex = 0,
             WidthRequest = 142
         };
+        Ui.ThemePicker(range);
         range.SelectedIndexChanged += (_, _) =>
         {
             if (range.SelectedIndex < 0) return;
@@ -81,9 +83,12 @@ public sealed class MainPage : ContentPage
         chartHeader.Add(range, 1);
         var legend = new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap };
         foreach (var (text, color) in new[] { ("正常", Ui.Green), ("较慢", Ui.Yellow), ("不可访问", Ui.Red), ("无数据", Ui.Empty) })
+        {
+            var dot = new BoxView { WidthRequest = 10, HeightRequest = 10, CornerRadius = 3, VerticalOptions = LayoutOptions.Center };
+            Ui.Bind(dot, BoxView.ColorProperty, color);
             legend.Add(new HorizontalStackLayout { Spacing = 6, Margin = new Thickness(0, 0, 18, 4),
-                Children = { new BoxView { Color = color, WidthRequest = 10, HeightRequest = 10, CornerRadius = 3,
-                    VerticalOptions = LayoutOptions.Center }, Ui.Text(text, 11, Ui.Muted) } });
+                Children = { dot, Ui.Text(text, 11, Ui.Muted) } });
+        }
         _statusBlock = new VerticalStackLayout { Spacing = 5, Children = { _status, _schedule } };
         _buttons = new HorizontalStackLayout { Spacing = 10, Children = { _probe, _pause, speedTest } };
         var content = new VerticalStackLayout
@@ -161,7 +166,7 @@ public sealed class MainPage : ContentPage
         _routes.Update(routes.Length.ToString(), $"直连 + {snapshot.Settings.Proxies.Length} 个代理");
         _rate.Update(relevant.Length == 0 ? "—" : $"{100.0 * relevant.Count(sample => sample.Status != ProbeStatus.Unreachable) / relevant.Length:0.0}%");
         _status.Text = !snapshot.Active ? "●  已暂停" : snapshot.Worker.Running ? "●  正在探测" : "●  持续监测中";
-        _status.TextColor = snapshot.Active ? Ui.Accent : Ui.Muted;
+        Ui.TextColor(_status, snapshot.Active ? Ui.Accent : Ui.Muted);
         _schedule.Text = !snapshot.Active ? "暂停期间不会产生记录" : snapshot.Worker.Running
             ? $"正在检测 {siteIds.Count} 个网站、{routeIds.Count} 条线路…"
             : $"下次探测 {snapshot.Worker.NextRunAt?.ToLocalTime():HH:mm:ss} · 上次完成 {snapshot.Worker.LastCompletedAt?.ToLocalTime():HH:mm:ss}";
@@ -175,8 +180,10 @@ public sealed class MainPage : ContentPage
     private void SelectCell(CellSelection selection)
     {
         _detail.Text = ProbePresentation.Describe(selection);
-        _detail.TextColor = selection.Sample is { Status: ProbeStatus.Unreachable } ? Ui.Red : Ui.Ink;
+        Ui.TextColor(_detail, selection.Sample is { Status: ProbeStatus.Unreachable } ? Ui.Red : Ui.Ink);
     }
+
+    internal void RedrawTheme() { foreach (var route in _routeViews) route.RedrawTheme(); }
 
     private void LayoutMetrics()
     {

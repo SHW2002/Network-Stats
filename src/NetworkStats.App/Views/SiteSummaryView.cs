@@ -30,7 +30,7 @@ internal sealed class SiteSummaryView : VerticalStackLayout
     {
         _speed.Text = (sample is { Status: not ProbeStatus.Unreachable, Transfer.MegabytesPerSecond: not null } ? "下载 " : "") +
             ProbePresentation.Speed(sample);
-        _speed.TextColor = sample is null ? Ui.Muted : Ui.StatusColor(sample.Status);
+        Ui.TextColor(_speed, sample is null ? Ui.Muted : Ui.StatusColor(sample.Status));
         _elapsed.Text = sample is null ? "等待下一轮" :
             $"{(sample.Transfer is null ? "响应头" : "总耗时")} {sample.LatencyMs:N0} ms";
         _quality.IsVisible = sample is { Status: not ProbeStatus.Unreachable, Transfer.ShortSample: true };

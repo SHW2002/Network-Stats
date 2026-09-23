@@ -9,22 +9,23 @@ internal sealed class TrayIcon : IDisposable
     private readonly nint _handle;
     private readonly Native.SubclassProc _callback;
     private readonly uint _taskbarCreated;
+    internal const string ExitMessageName = "NetworkStats.ExitForUpdate";
+    internal const string ExitPropertyName = "NetworkStats.ExplicitExit";
+    private readonly uint _exitMessage;
+    private readonly Func<bool> _minimizeOnClose;
     private Native.NotifyIconData _data;
     private bool _installed;
     private bool _disposed;
+    private bool _exiting;
 
-    public TrayIcon(Microsoft.UI.Xaml.Window window)
+    public TrayIcon(Microsoft.UI.Xaml.Window window, Func<bool> minimizeOnClose)
     {
         _window = window;
-        var ink = global::Windows.UI.Color.FromArgb(255, 23, 43, 69);
-        var background = global::Windows.UI.Color.FromArgb(255, 245, 247, 251);
-        window.AppWindow.TitleBar.ButtonForegroundColor = ink;
-        window.AppWindow.TitleBar.ButtonInactiveForegroundColor = ink;
-        window.AppWindow.TitleBar.ButtonBackgroundColor = background;
-        window.AppWindow.TitleBar.ButtonInactiveBackgroundColor = background;
+        _minimizeOnClose = minimizeOnClose;
         _handle = WinRT.Interop.WindowNative.GetWindowHandle(window);
         _callback = WindowMessage;
         _taskbarCreated = Native.RegisterWindowMessage("TaskbarCreated");
+        _exitMessage = Native.RegisterWindowMessage(ExitMessageName);
         var icon = Native.LoadImage(0, Path.Combine(AppContext.BaseDirectory, "app.ico"), 1, 32, 32, 0x10);
         _data = new()
         {
@@ -35,13 +36,22 @@ internal sealed class TrayIcon : IDisposable
         };
         OwnsIcon = icon != 0;
         if (Native.SetWindowSubclass(_handle, _callback, 1, 0))
+        {
             _installed = Native.ShellNotifyIcon(0, ref _data);
+            Native.SetProp(_handle, ExitPropertyName, 1);
+        }
     }
 
     private bool OwnsIcon { get; }
 
     private nint WindowMessage(nint window, uint message, nuint wParam, nint lParam, nuint id, nuint data)
     {
+        if (message == _exitMessage) { Exit(); return 0; }
+        if (message == 0x0010 && !_exiting && _minimizeOnClose()) // WM_CLOSE
+        {
+            Native.ShowWindow(_handle, 6); // SW_MINIMIZE；托盘可用时由 WM_SIZE 隐藏，否则保留任务栏入口。
+            return 0;
+        }
         if (message == _taskbarCreated)
             _installed = Native.ShellNotifyIcon(0, ref _data);
         if (message == 0x0005 && wParam == 1 && _installed) // WM_SIZE / SIZE_MINIMIZED
@@ -74,10 +84,16 @@ internal sealed class TrayIcon : IDisposable
             Native.SetForegroundWindow(_handle);
             var command = Native.TrackPopupMenu(menu, 0x0100 | 0x0002, position.X, position.Y, 0, _handle, 0);
             if (command == 1) Restore();
-            if (command == 2) _window.Close();
+            if (command == 2) Exit();
             Native.PostMessage(_handle, 0, 0, 0);
         }
         finally { Native.DestroyMenu(menu); }
+    }
+
+    private void Exit()
+    {
+        _exiting = true;
+        _window.Close();
     }
 
     public void Dispose()
@@ -85,6 +101,7 @@ internal sealed class TrayIcon : IDisposable
         if (_disposed) return;
         _disposed = true;
         if (_installed) Native.ShellNotifyIcon(2, ref _data);
+        Native.RemoveProp(_handle, ExitPropertyName);
         Native.RemoveWindowSubclass(_handle, _callback, 1);
         if (OwnsIcon) Native.DestroyIcon(_data.Icon);
     }

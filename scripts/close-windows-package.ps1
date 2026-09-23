@@ -10,8 +10,8 @@ if (-not ('CloseNetworkStatsWindow' -as [type])) {
 }
 foreach ($appProcess in $running) {
     if ($appProcess.HasExited) { continue }
-    $sent = $appProcess.CloseMainWindow()
-    if (-not $sent) { $sent = [CloseNetworkStatsWindow]::RequestClose($appProcess.Id) }
+    $sent = [CloseNetworkStatsWindow]::RequestClose($appProcess.Id)
+    if (-not $sent) { $sent = $appProcess.CloseMainWindow() }
     if (-not $sent -or -not $appProcess.WaitForExit(10000)) {
         throw "Cannot close Network Stats normally (PID $($appProcess.Id)); exit it from the tray and publish again."
     }

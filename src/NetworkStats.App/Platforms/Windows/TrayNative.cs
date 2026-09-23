@@ -49,4 +49,9 @@ internal static class Native
     [DllImport("user32.dll")] internal static extern bool DestroyMenu(nint menu);
     [DllImport("user32.dll", EntryPoint = "PostMessageW")]
     internal static extern bool PostMessage(nint window, uint message, nuint wParam, nint lParam);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "SetPropW")]
+    internal static extern bool SetProp(nint window, string name, nint value);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "RemovePropW")]
+    internal static extern nint RemoveProp(nint window, string name);
+    [DllImport("user32.dll")] internal static extern bool IsIconic(nint window);
 }

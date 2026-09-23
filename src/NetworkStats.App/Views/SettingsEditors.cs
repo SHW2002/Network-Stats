@@ -35,7 +35,8 @@ internal sealed class ProxyEditor : ContentView
         _host = Ui.Input(proxy.Host, "主机 / IP");
         _port = Ui.Input(proxy.Port.ToString(), "端口", Keyboard.Numeric);
         _protocol = new Picker { Title = "协议", ItemsSource = new[] { "HTTP", "HTTPS", "SOCKS5" },
-            TextColor = Ui.Ink, FontSize = 13, BackgroundColor = Ui.Background };
+            FontSize = 13 };
+        Ui.ThemePicker(_protocol);
         _protocol.SelectedIndex = proxy.Protocol switch { "https" => 1, "socks5" => 2, _ => 0 };
         var delete = Ui.Button("移除");
         delete.Clicked += (_, _) => remove(this);

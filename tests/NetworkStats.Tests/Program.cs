@@ -12,6 +12,7 @@ using NetworkStats.Tests;
     ("通过指定 HTTP 代理访问", ProbeTests.HttpProxyAsync),
     ("SOCKS5 握手及代理端域名解析", ProbeTests.SocksProxyAsync),
     ("配置校验、规范化与持久化", StorageTests.ValidateAndPersistSettingsAsync),
+    ("主题、关闭行为持久化及 ChatGPT 默认配置", PreferenceTests.DefaultsAndPersistenceAsync),
     ("分钟去重、历史保留、断行恢复和空白分钟", StorageTests.HistoryBucketsAndRecoveryAsync),
     ("并发限制、手动探测、暂停恢复及配置生效", EngineTests.SchedulingAndConcurrencyAsync),
     ("直连与多个代理的结果互不影响", EngineTests.RoutesRemainIndependentAsync),

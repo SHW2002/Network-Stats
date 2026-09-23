@@ -8,6 +8,7 @@ internal sealed class SettingsPage : ContentPage
 {
     private readonly MonitorEngine _monitor;
     private readonly MonitorSettings _initial;
+    internal AppearanceSettingsView Appearance { get; }
     private readonly Entry _interval;
     private readonly Entry _timeout;
     private readonly Entry _threshold;
@@ -22,7 +23,8 @@ internal sealed class SettingsPage : ContentPage
         _monitor = monitor;
         _initial = monitor.Settings;
         Title = "探测设置";
-        BackgroundColor = Ui.Background;
+        Ui.Bind(this, BackgroundColorProperty, Ui.Background);
+        Appearance = new(_initial);
         _interval = Ui.Input(_initial.IntervalSeconds.ToString(), "60", Keyboard.Numeric);
         _timeout = Ui.Input(_initial.TimeoutSeconds.ToString(), "10", Keyboard.Numeric);
         _threshold = Ui.Input(_initial.SlowThresholdMs.ToString(), "1500", Keyboard.Numeric);
@@ -48,7 +50,7 @@ internal sealed class SettingsPage : ContentPage
                 {
                     Ui.Text("配置仅对这台设备生效", 21, bold: true),
                     Ui.Text("保存后自动安排一轮探测；直连始终保留且不会使用系统 HTTP / SOCKS 代理。", 12, Ui.Muted),
-                    Ui.Card(parameters),
+                    Appearance, Ui.Card(parameters),
                     Ui.Text("目标网站", 17, bold: true), _sites, addSite,
                     Ui.Text("代理线路", 17, bold: true),
                     Ui.Text("127.0.0.1 指当前设备。手机连接电脑上的代理时，请填写电脑的局域网 IP，并允许代理接受局域网连接。", 12, Ui.Muted),
@@ -68,13 +70,14 @@ internal sealed class SettingsPage : ContentPage
     private void AddSite(SiteDefinition site) => _sites.Add(new SiteEditor(site, editor => _sites.Remove(editor)));
     private void AddProxy(ProxyDefinition proxy) => _proxies.Add(new ProxyEditor(proxy, editor => _proxies.Remove(editor)));
 
-    private async Task SaveAsync()
+    internal async Task SaveAsync()
     {
         _save.IsEnabled = false;
         try
         {
             var updated = _initial with
             {
+                Theme = Appearance.SelectedTheme, MinimizeOnClose = Appearance.MinimizeOnClose,
                 IntervalSeconds = Number(_interval), TimeoutSeconds = Number(_timeout), SlowThresholdMs = Number(_threshold),
                 RetentionHours = Number(_retention),
                 Sites = _sites.Children.OfType<SiteEditor>().Select(editor => editor.Read()).ToArray(),

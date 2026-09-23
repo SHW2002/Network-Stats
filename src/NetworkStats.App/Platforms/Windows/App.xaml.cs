@@ -10,7 +10,6 @@ public partial class App : MauiWinUIApplication
         ResourceManagerRequested += (_, args) => args.CustomResourceManager =
             new Microsoft.Windows.ApplicationModel.Resources.ResourceManager(
                 Path.Combine(AppContext.BaseDirectory, typeof(App).Assembly.GetName().Name + ".pri"));
-        RequestedTheme = Microsoft.UI.Xaml.ApplicationTheme.Light;
         InitializeComponent();
         Platforms.Windows.StartupDiagnostics.Write("WinUI application initialized");
     }
@@ -26,7 +25,7 @@ public partial class App : MauiWinUIApplication
             if (Platforms.Windows.PackageVerifier.ReportPath is not null)
             {
                 await Platforms.Windows.PackageVerifier.VerifyAsync(Services);
-                Exit();
+                if (Environment.ExitCode != 0) Exit();
             }
         }
         catch (Exception exception)
