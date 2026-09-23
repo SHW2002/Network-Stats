@@ -26,6 +26,7 @@ public sealed class MainPage : ContentPage
     private readonly IDispatcherTimer _timer;
     private string? _configuration;
     private int _minutes = 60;
+    internal bool HasDrawnTimelines => _routeViews.Count > 0 && _routeViews.All(route => route.HasDrawn);
 
     public MainPage(MonitorEngine monitor)
     {

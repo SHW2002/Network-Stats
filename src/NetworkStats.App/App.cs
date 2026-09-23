@@ -7,6 +7,7 @@ public sealed class App(MainPage mainPage, MonitorEngine monitor) : Application
 {
 #if WINDOWS
     private Platforms.Windows.TrayIcon? _tray;
+    internal bool TrayInitialized => _tray is not null;
 #endif
 
     protected override Window CreateWindow(IActivationState? activationState)

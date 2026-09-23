@@ -14,6 +14,7 @@ internal sealed class RouteTimelineView : ContentView
     private DateTimeOffset _start;
     private int _minutes = 60;
     private bool _needsScroll = true;
+    internal bool HasDrawn => _rows.Count > 0 && _rows.All(row => row.Drawing.HasDrawn);
 
     public RouteTimelineView(RouteDefinition route, SiteDefinition[] sites, Action<CellSelection> select)
     {

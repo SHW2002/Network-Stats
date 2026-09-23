@@ -1,0 +1,69 @@
+using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml.Media;
+using NetworkStats.App.Views;
+using NetworkStats.Monitoring;
+
+namespace NetworkStats.App.Platforms.Windows;
+
+// 测试脚本在独立 Win32 desktop 中运行。这里始终验证正常 MAUI 窗口启动路径。
+internal static class PackageVerifier
+{
+    public static string? ReportPath { get; } = GetReportPath();
+
+    private static string? GetReportPath()
+    {
+        var arguments = Environment.GetCommandLineArgs();
+        return arguments.Length == 3 && arguments[1] == "--verify-package"
+            ? Path.GetFullPath(arguments[2]) : null;
+    }
+
+    public static async Task VerifyAsync(IServiceProvider services)
+    {
+        var report = new List<string> { $"Runtime directory: {AppContext.BaseDirectory}" };
+        try
+        {
+            var page = services.GetRequiredService<MainPage>();
+            var app = (App)Microsoft.Maui.Controls.Application.Current!;
+            var window = app.Windows.Single();
+            var native = (Microsoft.UI.Xaml.Window)window.Handler!.PlatformView!;
+            var timeout = Stopwatch.StartNew();
+            while (!page.IsLoaded || !page.HasDrawnTimelines || page.Width <= 0)
+            {
+                if (timeout.Elapsed > TimeSpan.FromSeconds(20))
+                    throw new TimeoutException($"Window not ready: loaded={page.IsLoaded}, drawn={page.HasDrawnTimelines}, width={page.Width}");
+                await Task.Delay(50);
+            }
+            using var process = Process.GetCurrentProcess();
+            var startupMs = (DateTime.UtcNow - process.StartTime.ToUniversalTime()).TotalMilliseconds;
+            report.Add($"StartupMs: {startupMs:F0}");
+            StartupDiagnostics.Write($"Main page and timelines rendered; startup={startupMs:F0} ms");
+            if (native.Content.XamlRoot is null || VisualTreeHelper.GetChildrenCount(native.Content) == 0)
+                throw new InvalidOperationException("Native visual tree was not attached.");
+            if (!app.TrayInitialized) throw new InvalidOperationException("Tray initialization was skipped.");
+            var icon = Native.LoadImage(0, Path.Combine(AppContext.BaseDirectory, "app.ico"), 1, 32, 32, 0x10);
+            if (icon == 0) throw new InvalidOperationException("Bundled tray icon could not be loaded.");
+            Native.DestroyIcon(icon);
+            report.Add("MAUI: window loaded, native templates applied, timeline drawing completed");
+            report.Add("Tray: window integration initialized; bundled icon loaded");
+
+            await page.Navigation.PushAsync(new SettingsPage(services.GetRequiredService<MonitorEngine>()), false);
+            await Task.Delay(300);
+            if (!page.Navigation.NavigationStack.Last().IsLoaded)
+                throw new InvalidOperationException("Settings page did not load.");
+            await page.Navigation.PopAsync(false);
+            await Task.Delay(300);
+            report.Add("Navigation: settings opened and returned to timeline");
+            await services.GetRequiredService<MonitorEngine>().StopAsync();
+            report.Insert(0, "PASS");
+        }
+        catch (Exception exception)
+        {
+            report.Insert(0, "FAIL");
+            report.Add(exception.ToString());
+            StartupDiagnostics.Write($"Verification failed: {exception}");
+            Environment.ExitCode = 1;
+        }
+        await File.WriteAllLinesAsync(ReportPath!, report);
+    }
+}

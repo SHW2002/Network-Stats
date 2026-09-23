@@ -53,7 +53,7 @@ internal sealed class SettingsPage : ContentPage
                     Ui.Text("代理线路", 17, bold: true),
                     Ui.Text("127.0.0.1 指当前设备。手机连接电脑上的代理时，请填写电脑的局域网 IP，并允许代理接受局域网连接。", 12, Ui.Muted),
                     _proxies, addProxy, _error, _save,
-                    Ui.Text($"数据保存在此设备：\n{FileSystem.AppDataDirectory}", 11, Ui.Muted)
+                    Ui.Text($"数据保存在此设备：\n{AppStorage.DataDirectory}", 11, Ui.Muted)
                 }
             }
         };

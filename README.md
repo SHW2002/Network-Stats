@@ -29,24 +29,40 @@
 
 ## Windows 启动
 
-安装 [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)，然后执行：
+直接双击发布目录中的 **`artifacts/windows/Network-Stats.exe`** 即可启动。
+发布版只有一个 EXE，已经包含 .NET、Windows App SDK、图标和界面资源，无需安装 SDK 或另外复制 DLL。
+可以将这个 EXE 单独复制到其他 Windows x64 电脑使用。
+请保留 `Network-Stats.exe` 文件名；WinUI 的部分资源解析依赖编译时的名称，需要改名时重新编译并保持程序集与资源索引一致。
+
+首次启动时，运行库会自动解包到用户临时目录中的 `.net/Network-Stats/` 缓存，后续启动复用缓存。
+配置和历史依然保存在应用数据目录，不会写入 EXE 所在目录，也不会随运行库缓存清理而删除。
+最小化后程序在托盘继续运行，双击托盘图标可以恢复窗口。
+
+从源码启动时，安装 [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)，然后执行：
 
 ```powershell
 dotnet workload install maui-windows
 .\scripts\run-windows.ps1
 ```
 
-脚本优先使用 `%LOCALAPPDATA%\NetworkStats\dotnet` 下的独立 SDK，否则使用 PATH 中的 `dotnet`。
-应用数据保存在 MAUI 的 `FileSystem.AppDataDirectory`，设置页底部可以查看具体路径。
+启动脚本优先打开已有的单文件发布版；需要编译并运行最新开发代码时，使用 `.\scripts\run-windows.ps1 -Development`。
+需要编译时，脚本优先使用 `%LOCALAPPDATA%\NetworkStats\dotnet` 下的独立 SDK，否则使用 PATH 中的 `dotnet`。
+Windows 数据固定保存在 `%LOCALAPPDATA%\NetworkStats.App\NetworkStats.App\Data`，沿用首版路径；其他平台使用 MAUI 的 `FileSystem.AppDataDirectory`，设置页底部可以查看具体路径。
+Windows 启动和未处理异常日志保存在 `%LOCALAPPDATA%\NetworkStats\logs\startup-<进程号>.log`，保留最近 5 次启动记录。
 
-生成可复制到其他 Windows x64 电脑运行的完整目录：
+重新生成 Windows 单文件发布版：
 
 ```powershell
 .\scripts\run-windows.ps1 -Publish
-# 启动 artifacts\windows\NetworkStats.App.exe
+# 双击 artifacts\windows\Network-Stats.exe
 ```
 
-发布目录包含 .NET 和 Windows App SDK 运行时，分发时请复制**整个目录**，不能只复制 exe。
+发布使用 `WindowsPortable.pubxml`，启用依赖合并、压缩及资源自解包，关闭调试符号输出。
+应用及 MAUI 使用 ReadyToRun 预编译，运行库复用自带预编译代码，较大的 Windows API 投影保留按需编译能力，减少首次解包内容；历史记录在后台线程加载。
+脚本先在新目录构建，再将 EXE 单独复制到临时目录，在隔离的 Windows 桌面中执行完整窗口启动验证，通过后替换旧发布目录，避免遗留旧 DLL。
+验证包含一次空解包缓存启动、两次复用缓存启动，以及真实控件模板加载、时间图绘制、设置页往返和托盘初始化。
+测试只访问回环地址，使用独立数据目录；报告（包含包的 SHA256 和启动耗时）保存到 `artifacts/windows-package-check.txt`。
+测试桌面不会切换到前台，整个发布和验证流程都不会在当前桌面弹出或激活窗口。
 
 ## Android 构建
 
@@ -143,11 +159,15 @@ scripts/                 # Windows 启动、发布与测试脚本
 .\scripts\test.ps1
 # 或在任意已安装 .NET 10 SDK 的系统上：
 dotnet run --project tests/NetworkStats.Tests/NetworkStats.Tests.csproj
+
+# 在隔离桌面验证完整 Windows 窗口启动，不打扰当前桌面：
+.\scripts\test-windows-package.ps1 -ExecutablePath artifacts/windows/Network-Stats.exe
 ```
 
 检查覆盖直连不读取默认代理、HTTP / SOCKS5 代理、远端 DNS、延迟判色、重定向、响应头计时、超时、主动取消、配置校验、持久化、历史损坏恢复、并发上限、手动调度和多线路结果隔离。
 
 已完成 Windows 构建、窗口及托盘检查、Android 构建与 APK 签名 / 内嵌程序集检查，以及 10 组核心集成检查。
+单文件包额外验证真实 MAUI 窗口、WinUI 控件模板、Win2D 时间图绘制、设置页往返及托盘集成初始化；隔离桌面没有 Explorer 托盘，托盘菜单交互仍需手动验收。
 Android 尚未在真机运行验证；iOS 和 macOS 尚未在 Mac 上构建验证。
 自动测试应在后台进行，不自动打开、激活或置前 GUI；启动脚本供用户手动打开应用使用。
 

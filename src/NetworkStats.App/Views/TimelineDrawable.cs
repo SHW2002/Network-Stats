@@ -6,6 +6,7 @@ internal sealed class TimelineDrawable : IDrawable
 {
     public ProbeResult?[] Samples { get; set; } = new ProbeResult?[60];
     public int SelectedIndex { get; set; } = -1;
+    internal bool HasDrawn { get; private set; }
 
     public void Draw(ICanvas canvas, RectF dirtyRect)
     {
@@ -25,6 +26,7 @@ internal sealed class TimelineDrawable : IDrawable
                 canvas.DrawRoundedRectangle(new RectF(rectangle.X, rectangle.Y - 3, rectangle.Width, rectangle.Height + 6), 2);
             }
         }
+        HasDrawn = true;
     }
 }
 

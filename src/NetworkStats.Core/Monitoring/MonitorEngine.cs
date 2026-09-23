@@ -40,7 +40,8 @@ public sealed class MonitorEngine(SettingsStore settings, HistoryStore history, 
             if (_loop is { IsCompleted: false }) return;
             if (!_initialized)
             {
-                await history.LoadAsync(Settings.RetentionHours);
+                // 持有生命周期锁后再后台加载，既不阻塞首帧，也让紧接着的暂停等待启动完成。
+                await Task.Run(() => history.LoadAsync(Settings.RetentionHours));
                 _initialized = true;
             }
             _lifetime?.Dispose();
