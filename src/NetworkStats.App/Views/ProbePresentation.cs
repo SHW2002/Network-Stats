@@ -30,6 +30,7 @@ internal static class ProbePresentation
             $" · 采样于 {sample.CheckedAt.ToLocalTime():HH:mm:ss}";
         if (sample.Transfer is { } transfer)
         {
+            if (transfer.UsedBrowser) text += "\n采样方式：后台浏览器；只计算目标正文的实际传输字节，不计入脚本和图片。";
             text += $"\n响应体下载速度：{Speed(sample)} · 已读取 {transfer.BytesReceived / 1000.0:N1} KB";
             if (sample.Status != ProbeStatus.Unreachable && transfer.MegabitsPerSecond is not null)
                 text += $"（{transfer.MegabitsPerSecond:N2} Mbps）";
@@ -45,7 +46,9 @@ internal static class ProbePresentation
                 DownloadCompletion.TimeLimit => "\n已达到请求时限，速度根据这段时间内已收到的数据计算。",
                 _ => ""
             };
-            text += "\n下载速度 = 响应体字节数 / 响应体读取时间；访问总耗时另含连接和响应等待。";
+            text += transfer.UsedBrowser
+                ? "\n浏览器速度 = 正文传输字节 / 从首字节到正文结束的时间；总耗时另含浏览器准备、连接与响应等待。"
+                : "\n下载速度 = 响应体字节数 / 响应体读取时间；访问总耗时另含连接和响应等待。";
         }
         else text += "\n旧版记录只包含响应头耗时，没有下载速度数据。";
         return text + (sample.Error is { } error ? $"\n{error}" : "");

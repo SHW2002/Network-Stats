@@ -82,6 +82,8 @@ internal sealed class SpeedTestPage : ContentPage
         var sites = _monitor.Settings.Sites;
         _site.ItemsSource = sites;
         _site.SelectedItem = sites.FirstOrDefault(site => site.Id == siteId) ?? sites[0];
+        // 列表更新但选中索引仍为 0 时，Picker 不一定触发 SelectedIndexChanged。
+        _url.Text = ((SiteDefinition)_site.SelectedItem).Url;
         _timeLimitSeconds = _monitor.Settings.TimeoutSeconds;
         _limits.Text = $"直接读取该 URL · 最长 {_timeLimitSeconds} 秒 · 响应体上限 1 MB";
     }
@@ -114,6 +116,7 @@ internal sealed class SpeedTestPage : ContentPage
         try
         {
             var route = (RouteDefinition)_route.SelectedItem;
+            var target = (SiteDefinition)_site.SelectedItem;
             var progress = new Progress<DownloadProgress>(value =>
             {
                 if (_running == cancellation && !cancellation.IsCancellationRequested)
@@ -122,7 +125,7 @@ internal sealed class SpeedTestPage : ContentPage
                     ShowProgress(value);
                 }
             });
-            var result = await _probe.MeasureAsync(new(_url.Text, TimeSpan.FromSeconds(_timeLimitSeconds), ByteLimit),
+            var result = await _probe.MeasureAsync(new(target.Url, TimeSpan.FromSeconds(_timeLimitSeconds), ByteLimit),
                 route, progress, cancellation.Token);
             LastResult = result;
             ShowProgress(result.Download);
@@ -142,6 +145,7 @@ internal sealed class SpeedTestPage : ContentPage
             _quality.IsVisible = result.Succeeded && result.ShortSample;
             if (!result.Succeeded) _speed.Text = "— KB/s";
             _detail.Text = $"线路：{result.RouteName}\n地址：{result.Url}\n" +
+                (result.UsedBrowser ? "采样方式：后台浏览器，只计目标正文的实际传输字节；总耗时包含浏览器准备。\n" : "") +
                 (result.Succeeded ? "结果为该 URL 的响应体下载速度，不代表整条线路的最大带宽。" : result.Error);
         }
         catch (OperationCanceledException) { _status.Text = "已取消测速"; _speed.Text = "— KB/s"; _quality.IsVisible = false; }

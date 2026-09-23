@@ -7,6 +7,7 @@ public sealed record MonitorSettings
 {
     public ThemeMode Theme { get; init; } = ThemeMode.System;
     public bool MinimizeOnClose { get; init; }
+    public bool LaunchOnStartup { get; init; }
     public int IntervalSeconds { get; init; } = 60;
     public int TimeoutSeconds { get; init; } = 10;
     public int SlowThresholdMs { get; init; } = 1500;

@@ -4,7 +4,7 @@ namespace NetworkStats.Models;
 
 // 下载计时独立保存；旧记录缺失该字段时不能用总耗时冒充响应体传输时间。
 public sealed record UrlTransfer(long BytesReceived, double TotalMilliseconds, DownloadCompletion Completion, string Url,
-    double? TransferMilliseconds = null)
+    double? TransferMilliseconds = null, bool UsedBrowser = false)
 {
     [JsonIgnore]
     public double? MegabytesPerSecond => TransferMilliseconds is > 0 && BytesReceived > 0

@@ -60,7 +60,7 @@ internal static class UrlProbeTests
         var history = new HistoryStore(directory.Path);
         await history.LoadAsync(1);
         var sample = new ProbeResult(now, "new", "direct", ProbeStatus.Healthy, 250, 200, null,
-            new UrlTransfer(125000, 250.5, DownloadCompletion.EndOfFile, "https://example.com/page?q=1", 100.5));
+            new UrlTransfer(125000, 250.5, DownloadCompletion.EndOfFile, "https://example.com/page?q=1", 100.5, UsedBrowser: true));
         await history.RecordAsync([sample], 1, default);
         var restored = new HistoryStore(directory.Path);
         await restored.LoadAsync(1);

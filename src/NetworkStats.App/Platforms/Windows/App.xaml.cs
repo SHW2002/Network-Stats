@@ -21,6 +21,8 @@ public partial class App : MauiWinUIApplication
         {
             Platforms.Windows.StartupDiagnostics.Write("Launching MAUI window");
             base.OnLaunched(args);
+            if (Environment.GetCommandLineArgs().Contains("--startup"))
+                ((NetworkStats.App.App)Microsoft.Maui.Controls.Application.Current!).MinimizeForStartup();
             Platforms.Windows.StartupDiagnostics.Write("MAUI launch returned");
             if (Platforms.Windows.PackageVerifier.ReportPath is not null)
             {

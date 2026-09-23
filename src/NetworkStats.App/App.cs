@@ -9,6 +9,7 @@ public sealed class App(MainPage mainPage, MonitorEngine monitor) : Application
 #if WINDOWS
     private Platforms.Windows.TrayIcon? _tray;
     internal bool TrayInitialized => _tray is not null;
+    internal void MinimizeForStartup() => _tray?.Minimize();
 #endif
 
     protected override Window CreateWindow(IActivationState? activationState)

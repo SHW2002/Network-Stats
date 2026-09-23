@@ -19,9 +19,11 @@ internal static class PreferenceVerifier
                 await mainPage.Navigation.PushAsync(settings, false);
                 settings.Appearance.SelectedTheme = mode;
                 settings.Appearance.MinimizeOnClose = true;
+                settings.Startup.Enabled = mode != ThemeMode.Light;
                 await settings.SaveAsync(); // 使用实际保存按钮的入口，验证配置与 UI 一起生效。
                 var restored = new SettingsStore(AppStorage.DataDirectory, new MonitorSettings()).Current;
-                if (restored.Theme != mode || !restored.MinimizeOnClose)
+                if (restored.Theme != mode || !restored.MinimizeOnClose || restored.LaunchOnStartup != (mode != ThemeMode.Light) ||
+                    Startup.StartupServices.Current.Read().Registered != restored.LaunchOnStartup)
                     throw new InvalidOperationException("Appearance preferences were not persisted by the settings page.");
                 await CheckThemeAsync(mode);
                 var speed = await mainPage.OpenSpeedTestAsync();
@@ -37,8 +39,11 @@ internal static class PreferenceVerifier
             if (!monitor.IsActive) throw new InvalidOperationException("Minimizing on close stopped network monitoring.");
             // 仅在发布脚本创建的隔离桌面中恢复，绝不切换到用户桌面。
             Native.ShowWindow(handle, 9);
+            app.MinimizeForStartup();
+            while (!Native.IsIconic(handle)) await Task.Delay(50, timeout.Token);
+            Native.ShowWindow(handle, 9);
         }
-        finally { await monitor.SaveSettingsAsync(original); }
+        finally { Startup.StartupServices.Current.SetEnabled(original.LaunchOnStartup); await monitor.SaveSettingsAsync(original); }
 
         async Task CheckThemeAsync(ThemeMode mode)
         {

@@ -43,6 +43,7 @@ internal sealed class TrayIcon : IDisposable
     }
 
     private bool OwnsIcon { get; }
+    internal void Minimize() => Native.ShowWindow(_handle, 6);
 
     private nint WindowMessage(nint window, uint message, nuint wParam, nint lParam, nuint id, nuint data)
     {

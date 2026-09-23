@@ -1,6 +1,7 @@
 using NetworkStats.Configuration;
 using NetworkStats.Models;
 using NetworkStats.Monitoring;
+using NetworkStats.App.Startup;
 
 namespace NetworkStats.App.Views;
 
@@ -9,6 +10,8 @@ internal sealed class SettingsPage : ContentPage
     private readonly MonitorEngine _monitor;
     private readonly MonitorSettings _initial;
     internal AppearanceSettingsView Appearance { get; }
+    internal StartupSettingsView Startup { get; }
+    private readonly IStartupService _startup;
     private readonly Entry _interval;
     private readonly Entry _timeout;
     private readonly Entry _threshold;
@@ -18,13 +21,17 @@ internal sealed class SettingsPage : ContentPage
     private readonly Label _error = Ui.Text("", 13, Ui.Red);
     private readonly Button _save = Ui.Button("保存设置", true);
 
-    public SettingsPage(MonitorEngine monitor)
+    public SettingsPage(MonitorEngine monitor, IStartupService? startup = null)
     {
         _monitor = monitor;
         _initial = monitor.Settings;
         Title = "探测设置";
         Ui.Bind(this, BackgroundColorProperty, Ui.Background);
         Appearance = new(_initial);
+        _startup = startup ?? StartupServices.Current;
+        try { Startup = new(_startup.Read()); }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        { Startup = new(new(false, _initial.LaunchOnStartup, "无法读取系统启动项：" + exception.Message)); }
         _interval = Ui.Input(_initial.IntervalSeconds.ToString(), "60", Keyboard.Numeric);
         _timeout = Ui.Input(_initial.TimeoutSeconds.ToString(), "10", Keyboard.Numeric);
         _threshold = Ui.Input(_initial.SlowThresholdMs.ToString(), "1500", Keyboard.Numeric);
@@ -50,7 +57,7 @@ internal sealed class SettingsPage : ContentPage
                 {
                     Ui.Text("配置仅对这台设备生效", 21, bold: true),
                     Ui.Text("保存后自动安排一轮探测；直连始终保留且不会使用系统 HTTP / SOCKS 代理。", 12, Ui.Muted),
-                    Appearance, Ui.Card(parameters),
+                    Appearance, Startup, Ui.Card(parameters),
                     Ui.Text("目标网站", 17, bold: true), _sites, addSite,
                     Ui.Text("代理线路", 17, bold: true),
                     Ui.Text("127.0.0.1 指当前设备。手机连接电脑上的代理时，请填写电脑的局域网 IP，并允许代理接受局域网连接。", 12, Ui.Muted),
@@ -78,16 +85,30 @@ internal sealed class SettingsPage : ContentPage
             var updated = _initial with
             {
                 Theme = Appearance.SelectedTheme, MinimizeOnClose = Appearance.MinimizeOnClose,
+                LaunchOnStartup = Startup.Status.Supported ? Startup.Enabled : _initial.LaunchOnStartup,
                 IntervalSeconds = Number(_interval), TimeoutSeconds = Number(_timeout), SlowThresholdMs = Number(_threshold),
                 RetentionHours = Number(_retention),
                 Sites = _sites.Children.OfType<SiteEditor>().Select(editor => editor.Read()).ToArray(),
                 Proxies = _proxies.Children.OfType<ProxyEditor>().Select(editor => editor.Read()).ToArray()
             };
-            await _monitor.SaveSettingsAsync(updated);
+            updated = SettingsValidator.Normalize(updated);
+            var previousStartup = Startup.Status.Supported ? _startup.Read() : Startup.Status;
+            var changeStartup = previousStartup.Supported &&
+                (previousStartup.Registered != Startup.Enabled || (Startup.Enabled && previousStartup.NeedsUpdate));
+            if (changeStartup) _startup.SetEnabled(Startup.Enabled);
+            try { await _monitor.SaveSettingsAsync(updated); }
+            catch
+            {
+                if (changeStartup) _startup.SetEnabled(previousStartup.Registered);
+                throw;
+            }
+            var currentStartup = Startup.Status.Supported ? _startup.Read() : Startup.Status;
+            Startup.ShowStatus(currentStartup);
+            if (currentStartup.RequiresApproval) { _error.Text = currentStartup.Detail; return; }
             await Navigation.PopAsync();
         }
         catch (SettingsValidationException exception) { _error.Text = string.Join("\n", exception.Errors); }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException or System.Security.SecurityException)
         { _error.Text = $"配置保存失败：{exception.Message}"; }
         finally { _save.IsEnabled = true; }
     }

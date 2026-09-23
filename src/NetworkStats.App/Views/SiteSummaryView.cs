@@ -33,7 +33,9 @@ internal sealed class SiteSummaryView : VerticalStackLayout
         Ui.TextColor(_speed, sample is null ? Ui.Muted : Ui.StatusColor(sample.Status));
         _elapsed.Text = sample is null ? "等待下一轮" :
             $"{(sample.Transfer is null ? "响应头" : "总耗时")} {sample.LatencyMs:N0} ms";
-        _quality.IsVisible = sample is { Status: not ProbeStatus.Unreachable, Transfer.ShortSample: true };
-        _quality.Text = _quality.IsVisible ? "样本较小 · 仅供参考" : "";
+        _quality.IsVisible = sample is { Transfer.UsedBrowser: true } or { Status: not ProbeStatus.Unreachable, Transfer.ShortSample: true };
+        _quality.Text = sample is { Transfer.UsedBrowser: true }
+            ? sample.Transfer.ShortSample ? "浏览器 · 样本较小" : "后台浏览器探测"
+            : _quality.IsVisible ? "样本较小 · 仅供参考" : "";
     }
 }

@@ -20,7 +20,7 @@ public sealed record DownloadProgress(long BytesReceived, TimeSpan TransferTime,
 
 public sealed record DownloadSpeedResult(
     string Url, string RouteName, DownloadProgress Download, DownloadCompletion Completion,
-    int? HttpStatus, string? Error)
+    int? HttpStatus, string? Error, bool BrowserVerificationRequired = false, bool UsedBrowser = false)
 {
     public bool Succeeded => Completion != DownloadCompletion.Failed && Download.BytesReceived > 0;
     public bool ShortSample => Download.ShortSample;

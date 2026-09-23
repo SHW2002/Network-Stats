@@ -71,6 +71,8 @@ try {
                 $report -notcontains 'URL speed: configured URL automatically measured and speed rendered on main timeline' -or
                 $report -notcontains 'URL speed: single-site page measured the same configured path and query' -or
                 $report -notcontains 'Download metrics: body throughput, separate timings, small-sample hints and legacy history verified' -or
+                $report -notcontains 'Browser: challenge fallback, main timeline and single-site body speed verified on isolated desktops' -or
+                $report -notcontains 'Startup: settings toggle and persistence verified without changing real login items' -or
                 $report -notcontains 'Preferences: light/dark/system themes, saved settings and close-to-minimize verified') {
                 throw 'Full window verification failed.'
             }
