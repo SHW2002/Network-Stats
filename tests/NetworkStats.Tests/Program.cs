@@ -11,7 +11,11 @@ using NetworkStats.Tests;
     ("分钟去重、历史保留、断行恢复和空白分钟", StorageTests.HistoryBucketsAndRecoveryAsync),
     ("并发限制、手动探测、暂停恢复及配置生效", EngineTests.SchedulingAndConcurrencyAsync),
     ("直连与多个代理的结果互不影响", EngineTests.RoutesRemainIndependentAsync),
-    ("暂停时不生成误报", EngineTests.PauseDoesNotCreateRedSamplesAsync)
+    ("暂停时不生成误报", EngineTests.PauseDoesNotCreateRedSamplesAsync),
+    ("实际下载字节、过程进度和直连绕过系统代理", DownloadSpeedTests.StreamingAndDirectAsync),
+    ("下载流量限制、全程时限和主动取消", DownloadSpeedTests.LimitsAndCancellationAsync),
+    ("下载重定向、错误、断流和压缩数据计量", DownloadSpeedTests.RedirectErrorsAndEncodingAsync),
+    ("通过 HTTP 和 SOCKS5 代理下载测速", DownloadSpeedTests.ProxyRoutesAsync)
 ];
 var failed = 0;
 foreach (var test in tests)

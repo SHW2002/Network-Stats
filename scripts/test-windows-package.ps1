@@ -64,7 +64,8 @@ try {
             $results.AddRange([string[]]$report)
             $report | Write-Output
             if ($process.ExitCode -ne 0 -or $report[0] -ne 'PASS' -or
-                $report -notcontains 'MAUI: window loaded, native templates applied, timeline drawing completed') {
+                $report -notcontains 'MAUI: window loaded, native templates applied, timeline drawing completed' -or
+                $report -notcontains 'Download speed: page loaded and loopback download measured') {
                 throw 'Full window verification failed.'
             }
         } finally { $process.Dispose() }

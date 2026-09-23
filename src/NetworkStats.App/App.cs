@@ -30,10 +30,11 @@ public sealed class App(MainPage mainPage, MonitorEngine monitor) : Application
         window.Resumed += async (_, _) => await ResumeAsync();
 #if ANDROID || IOS
         // 移动端进入后台即停止探测，恢复时重新开始，不伪造缺失分钟。
-        window.Stopped += async (_, _) => await monitor.StopAsync();
+        window.Stopped += async (_, _) => { mainPage.CancelSpeedTest(); await monitor.StopAsync(); };
 #endif
         window.Destroying += async (_, _) =>
         {
+            mainPage.CancelSpeedTest();
 #if WINDOWS
             _tray?.Dispose();
 #endif

@@ -1,11 +1,14 @@
 using NetworkStats.Models;
 using NetworkStats.Monitoring;
+using NetworkStats.Probing;
 
 namespace NetworkStats.App.Views;
 
 public sealed class MainPage : ContentPage
 {
     private readonly MonitorEngine _monitor;
+    private readonly DownloadSpeedProbe _downloadProbe;
+    private SpeedTestPage? _speedPage;
     private readonly Label _status = Ui.Text("正在启动", 12, Ui.Accent, true);
     private readonly Label _schedule = Ui.Text("正在准备首次探测…", 12, Ui.Muted);
     private readonly Label _warning = Ui.Text("", 12, Ui.Red);
@@ -28,14 +31,17 @@ public sealed class MainPage : ContentPage
     private int _minutes = 60;
     internal bool HasDrawnTimelines => _routeViews.Count > 0 && _routeViews.All(route => route.HasDrawn);
 
-    public MainPage(MonitorEngine monitor)
+    public MainPage(MonitorEngine monitor, DownloadSpeedProbe downloadProbe)
     {
         _monitor = monitor;
+        _downloadProbe = downloadProbe;
         Title = "网络观测站";
         BackgroundColor = Ui.Background;
         NavigationPage.SetHasNavigationBar(this, false);
         var settings = Ui.Button("设置");
         settings.Clicked += async (_, _) => await Navigation.PushAsync(new SettingsPage(_monitor));
+        var speedTest = Ui.Button("下载测速");
+        speedTest.Clicked += async (_, _) => await OpenSpeedTestAsync();
         _probe.Clicked += (_, _) => { _monitor.RequestProbe(); Refresh(); };
         _pause.Clicked += async (_, _) =>
         {
@@ -75,7 +81,7 @@ public sealed class MainPage : ContentPage
                 Children = { new BoxView { Color = color, WidthRequest = 10, HeightRequest = 10, CornerRadius = 3,
                     VerticalOptions = LayoutOptions.Center }, Ui.Text(text, 11, Ui.Muted) } });
         _statusBlock = new VerticalStackLayout { Spacing = 5, Children = { _status, _schedule } };
-        _buttons = new HorizontalStackLayout { Spacing = 10, Children = { _probe, _pause } };
+        _buttons = new HorizontalStackLayout { Spacing = 10, Children = { _probe, _pause, speedTest } };
         var content = new VerticalStackLayout
         {
             Spacing = 18, Padding = new Thickness(24, 20, 24, 30), MaximumWidthRequest = 1400,
@@ -101,6 +107,15 @@ public sealed class MainPage : ContentPage
         _timer.Start();
         Refresh();
     }
+
+    internal async Task<SpeedTestPage> OpenSpeedTestAsync()
+    {
+        _speedPage ??= new SpeedTestPage(_monitor, _downloadProbe);
+        if (!Navigation.NavigationStack.Contains(_speedPage)) await Navigation.PushAsync(_speedPage, false);
+        return _speedPage;
+    }
+
+    internal void CancelSpeedTest() => _speedPage?.Cancel();
 
     protected override void OnDisappearing()
     {

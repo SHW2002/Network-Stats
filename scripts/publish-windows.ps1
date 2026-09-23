@@ -37,18 +37,33 @@ try {
     }
     & (Join-Path $PSScriptRoot 'test-windows-package.ps1') -ExecutablePath $publishedExe
 
-    if (Test-Path -LiteralPath $destination) { Move-Item -LiteralPath $destination -Destination $backup }
-    try { Move-Item -LiteralPath $staging -Destination $destination }
-    catch {
-        if (Test-Path -LiteralPath $backup) { Move-Item -LiteralPath $backup -Destination $destination }
-        throw
+    $publishedDirectory = $destination
+    if (Test-Path -LiteralPath $destination) {
+        try { Move-Item -LiteralPath $destination -Destination $backup }
+        catch {
+            # 运行中的 EXE 会锁住发布目录。保留已验证的新包，不终止用户的进程。
+            $publishedDirectory = Join-Path $artifacts 'windows-update'
+            if (Test-Path -LiteralPath $publishedDirectory) {
+                $publishedDirectory = Join-Path $artifacts ('windows-update-' + $identifier)
+            }
+            Assert-PublishDirectory $publishedDirectory
+            Move-Item -LiteralPath $staging -Destination $publishedDirectory
+            Write-Warning "Could not replace the existing package: $($_.Exception.Message) Close the old app and use the new EXE at $publishedDirectory."
+        }
+    }
+    if ($publishedDirectory -eq $destination) {
+        try { Move-Item -LiteralPath $staging -Destination $destination }
+        catch {
+            if (Test-Path -LiteralPath $backup) { Move-Item -LiteralPath $backup -Destination $destination }
+            throw
+        }
     }
     if (Test-Path -LiteralPath $backup) {
         Assert-PublishDirectory $backup
         try { Remove-Item -LiteralPath $backup -Recurse -Force }
         catch { Write-Warning "Previous package is still in use and was kept at $backup" }
     }
-    $result = Get-Item -LiteralPath (Join-Path $destination 'Network-Stats.exe')
+    $result = Get-Item -LiteralPath (Join-Path $publishedDirectory 'Network-Stats.exe')
     Write-Output ("Published: {0} ({1:N1} MB, one file)" -f $result.FullName, ($result.Length / 1MB))
 } finally {
     if (Test-Path -LiteralPath $staging) {

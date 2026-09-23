@@ -9,12 +9,14 @@ internal sealed class SocksProxy : IAsyncDisposable
     private readonly TcpListener _listener = new(IPAddress.Loopback, 0);
     private readonly CancellationTokenSource _lifetime = new(TimeSpan.FromSeconds(15));
     private readonly Task _server;
+    private readonly byte[]? _body;
     public string? RequestedHost { get; private set; }
     public int RequestedPort { get; private set; }
     public int Port => ((IPEndPoint)_listener.LocalEndpoint).Port;
 
-    public SocksProxy()
+    public SocksProxy(byte[]? body = null)
     {
+        _body = body;
         _listener.Start();
         _server = ServeAsync();
     }
@@ -41,7 +43,10 @@ internal sealed class SocksProxy : IAsyncDisposable
             if (header.Length > 16384) throw new InvalidDataException("HTTP request too large");
             header.Append((char)(await ReadAsync(stream, 1))[0]);
         }
-        await stream.WriteAsync(Encoding.ASCII.GetBytes("HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n"), _lifetime.Token);
+        var response = _body is null ? "HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n"
+            : $"HTTP/1.1 200 OK\r\nContent-Length: {_body.Length}\r\nConnection: close\r\n\r\n";
+        await stream.WriteAsync(Encoding.ASCII.GetBytes(response), _lifetime.Token);
+        if (_body is not null) await stream.WriteAsync(_body, _lifetime.Token);
     }
 
     private async Task<byte[]> ReadAsync(Stream stream, int size)

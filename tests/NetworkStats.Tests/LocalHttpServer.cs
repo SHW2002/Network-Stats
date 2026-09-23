@@ -17,6 +17,7 @@ internal sealed class LocalHttpServer : IAsyncDisposable
     private int _requests;
     public string Address { get; private set; } = "";
     public string? LastRawTarget { get; private set; }
+    public string? LastAcceptEncoding { get; private set; }
     public int MaximumConcurrency => _maximum;
     public int Requests => _requests;
 
@@ -36,6 +37,8 @@ internal sealed class LocalHttpServer : IAsyncDisposable
             try
             {
                 LastRawTarget = context.Features.Get<IHttpRequestFeature>()?.RawTarget;
+                LastAcceptEncoding = context.Request.Headers.AcceptEncoding;
+                if (await DownloadTestEndpoints.HandleAsync(context)) return;
                 switch (context.Request.Path.Value)
                 {
                     case "/slow":
