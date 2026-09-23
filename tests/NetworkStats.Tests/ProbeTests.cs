@@ -25,7 +25,7 @@ internal static class ProbeTests
         finally { HttpClient.DefaultProxy = original; }
     }
 
-    public static async Task ColorsRedirectAndHeadersAsync()
+    public static async Task ColorsRedirectAndBodyAsync()
     {
         await using var server = await LocalHttpServer.StartAsync();
         var slow = await Probe.CheckAsync(new("slow", server.Address + "/slow"), Direct, Settings with { SlowThresholdMs = 50 }, default);
@@ -35,7 +35,8 @@ internal static class ProbeTests
         var redirect = await Probe.CheckAsync(new("redirect", server.Address + "/redirect"), Direct, Settings, default);
         Check.That(redirect.HttpStatus == 204, "Redirect was not followed");
         var stream = await Probe.CheckAsync(new("stream", server.Address + "/stream"), Direct, Settings with { TimeoutSeconds = 2 }, default);
-        Check.That(stream.Status == ProbeStatus.Healthy && stream.LatencyMs < 2000, "Probe waited for the response body");
+        Check.That(stream.Status == ProbeStatus.Unreachable && stream.Transfer?.BytesReceived == 0,
+            "Headers without body data were incorrectly treated as a completed URL visit");
     }
 
     public static async Task TimeoutAndCancellationAsync()

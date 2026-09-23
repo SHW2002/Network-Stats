@@ -1,8 +1,8 @@
-param([switch]$Publish, [switch]$Development)
+param([switch]$Publish, [switch]$Development, [switch]$CloseRunning)
 $ErrorActionPreference = 'Stop'
 $workspace = Split-Path -Parent $PSScriptRoot
 if ($Publish) {
-    & (Join-Path $PSScriptRoot 'publish-windows.ps1')
+    & (Join-Path $PSScriptRoot 'publish-windows.ps1') -CloseRunning:$CloseRunning
     return
 }
 $published = Join-Path $workspace 'artifacts\windows\Network-Stats.exe'

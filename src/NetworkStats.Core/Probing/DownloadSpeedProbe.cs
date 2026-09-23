@@ -27,6 +27,7 @@ public sealed class DownloadSpeedProbe
             Proxy = route.Address is null ? null : new WebProxy(route.Address),
             ConnectTimeout = options.TimeLimit,
             AutomaticDecompression = DecompressionMethods.None,
+            MaxResponseDrainSize = 0,
             AllowAutoRedirect = true,
             MaxAutomaticRedirections = 5,
             UseCookies = false
@@ -58,7 +59,7 @@ public sealed class DownloadSpeedProbe
                 var count = (int)Math.Min(buffer.Length, options.ByteLimit - received);
                 var read = await stream.ReadAsync(buffer.AsMemory(0, count), timeout.Token).ConfigureAwait(false);
                 if (read == 0)
-                    return received == 0 ? Finish(DownloadCompletion.Failed, "响应中没有可供测速的数据，请使用文件下载地址。")
+                    return received == 0 ? Finish(DownloadCompletion.EndOfFile, "该 URL 的响应体为空，没有可计算的传输速度。")
                         : Finish(DownloadCompletion.EndOfFile);
                 received += read;
                 if (total.Elapsed - lastProgress >= TimeSpan.FromMilliseconds(200))

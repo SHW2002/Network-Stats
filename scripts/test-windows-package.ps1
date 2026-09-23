@@ -65,7 +65,8 @@ try {
             $report | Write-Output
             if ($process.ExitCode -ne 0 -or $report[0] -ne 'PASS' -or
                 $report -notcontains 'MAUI: window loaded, native templates applied, timeline drawing completed' -or
-                $report -notcontains 'Download speed: page loaded and loopback download measured') {
+                $report -notcontains 'URL speed: configured URL automatically measured and speed rendered on main timeline' -or
+                $report -notcontains 'URL speed: single-site page measured the same configured path and query') {
                 throw 'Full window verification failed.'
             }
         } finally { $process.Dispose() }

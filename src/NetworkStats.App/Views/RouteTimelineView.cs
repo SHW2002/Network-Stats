@@ -6,7 +6,7 @@ namespace NetworkStats.App.Views;
 internal sealed class RouteTimelineView : ContentView
 {
     private readonly RouteDefinition _route;
-    private readonly List<(SiteDefinition Site, Label Latest, GraphicsView View, TimelineDrawable Drawing)> _rows = [];
+    private readonly List<(SiteDefinition Site, SiteSummaryView Summary, GraphicsView View, TimelineDrawable Drawing)> _rows = [];
     private readonly VerticalStackLayout _charts = new() { Spacing = 0 };
     private readonly ScrollView _scroll;
     private readonly TimeAxisDrawable _axis = new();
@@ -15,6 +15,7 @@ internal sealed class RouteTimelineView : ContentView
     private int _minutes = 60;
     private bool _needsScroll = true;
     internal bool HasDrawn => _rows.Count > 0 && _rows.All(row => row.Drawing.HasDrawn);
+    internal bool HasSpeedReadings => _rows.Any(row => row.Summary.HasSpeedReading);
 
     public RouteTimelineView(RouteDefinition route, SiteDefinition[] sites, Action<CellSelection> select)
     {
@@ -27,17 +28,10 @@ internal sealed class RouteTimelineView : ContentView
         _charts.Add(_axisView);
         foreach (var site in sites)
         {
-            var latest = Ui.Text("等待采样", 11, Ui.Muted);
-            labelColumn.Add(new VerticalStackLayout
-            {
-                HeightRequest = 56,
-                VerticalOptions = LayoutOptions.Center,
-                Spacing = 3,
-                Padding = new Thickness(0, 8, 8, 0),
-                Children = { Ui.Text(site.Name, 14, bold: true), latest }
-            });
+            var summary = new SiteSummaryView(site);
+            labelColumn.Add(summary);
             var drawing = new TimelineDrawable();
-            var view = new GraphicsView { Drawable = drawing, HeightRequest = 56 };
+            var view = new GraphicsView { Drawable = drawing, HeightRequest = SiteSummaryView.RowHeight };
             view.StartInteraction += (_, args) =>
             {
                 if (args.Touches.Length == 0 || view.Width <= 0) return;
@@ -49,7 +43,7 @@ internal sealed class RouteTimelineView : ContentView
             };
             SemanticProperties.SetDescription(view, $"{site.Name} 经由 {route.Name} 的每分钟可访问性时间图，点击色块查看详情");
             _charts.Add(view);
-            _rows.Add((site, latest, view, drawing));
+            _rows.Add((site, summary, view, drawing));
         }
         _scroll = new ScrollView
         {
@@ -60,7 +54,7 @@ internal sealed class RouteTimelineView : ContentView
         _scroll.SizeChanged += (_, _) => ResizePlot();
         var table = new Grid
         {
-            ColumnDefinitions = [new(new GridLength(105)), new(GridLength.Star)],
+            ColumnDefinitions = [new(new GridLength(128)), new(GridLength.Star)],
             ColumnSpacing = 8
         };
         table.Add(labelColumn, 0);
@@ -97,12 +91,9 @@ internal sealed class RouteTimelineView : ContentView
             row.Drawing.SelectedIndex = -1;
             row.View.Invalidate();
             var latest = buckets.LastOrDefault(sample => sample is not null);
-            row.Latest.Text = latest is null ? "无数据" : latest.Status == ProbeStatus.Unreachable
-                ? latest.HttpStatus is { } code ? $"HTTP {code}" : "不可访问"
-                : $"{latest.LatencyMs:N0} ms";
-            row.Latest.TextColor = Ui.StatusColor(latest?.Status);
+            row.Summary.Update(latest);
             SemanticProperties.SetDescription(row.View,
-                $"{row.Site.Name} 经由 {_route.Name}：最新记录 {Ui.StatusText(latest?.Status)}，{row.Latest.Text}");
+                $"{row.Site.Name} 经由 {_route.Name}：最新记录 {Ui.StatusText(latest?.Status)}，{ProbePresentation.Speed(latest)}");
         }
         ResizePlot();
     }

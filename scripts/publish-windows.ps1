@@ -1,3 +1,4 @@
+param([switch]$CloseRunning)
 $ErrorActionPreference = 'Stop'
 $workspace = Split-Path -Parent $PSScriptRoot
 $privateSdk = Join-Path $env:LOCALAPPDATA 'NetworkStats\dotnet\dotnet.exe'
@@ -37,6 +38,14 @@ try {
     }
     & (Join-Path $PSScriptRoot 'test-windows-package.ps1') -ExecutablePath $publishedExe
 
+    if ($CloseRunning) {
+        try {
+            & (Join-Path $PSScriptRoot 'close-windows-package.ps1') -ExecutablePath (Join-Path $destination 'Network-Stats.exe')
+        } catch {
+            # 正常关闭失败时继续走下方的占用处理，将已验证的新包保留到备用目录。
+            Write-Warning $_.Exception.Message
+        }
+    }
     $publishedDirectory = $destination
     if (Test-Path -LiteralPath $destination) {
         try { Move-Item -LiteralPath $destination -Destination $backup }

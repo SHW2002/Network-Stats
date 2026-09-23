@@ -3,7 +3,10 @@ using NetworkStats.Tests;
 (string Name, Func<Task> Run)[] tests =
 [
     ("直连显式绕过系统代理", ProbeTests.DirectBypassesSystemProxyAsync),
-    ("绿黄红判定、重定向和仅等待响应头", ProbeTests.ColorsRedirectAndHeadersAsync),
+    ("绿黄红判定、重定向和等待响应体", ProbeTests.ColorsRedirectAndBodyAsync),
+    ("配置 URL 的字节计量、总耗时与慢速判色", UrlProbeTests.ExactUrlAndBodyTimingAsync),
+    ("URL 自动采样的流量时限、空响应与断流", UrlProbeTests.LimitsAndFailuresAsync),
+    ("访问速度历史恢复及旧版记录兼容", UrlProbeTests.HistoryCompatibilityAsync),
     ("超时与主动取消分别处理", ProbeTests.TimeoutAndCancellationAsync),
     ("通过指定 HTTP 代理访问", ProbeTests.HttpProxyAsync),
     ("SOCKS5 握手及代理端域名解析", ProbeTests.SocksProxyAsync),

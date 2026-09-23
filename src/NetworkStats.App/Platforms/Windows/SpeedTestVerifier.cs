@@ -1,50 +1,34 @@
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
 using NetworkStats.App.Views;
+using NetworkStats.Models;
+using NetworkStats.Monitoring;
 
 namespace NetworkStats.App.Platforms.Windows;
 
 internal static class SpeedTestVerifier
 {
-    public static async Task VerifyAsync(MainPage mainPage)
+    public static async Task VerifyAsync(MainPage mainPage, MonitorEngine monitor)
     {
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        using var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        var serving = ServeAsync(listener, timeout.Token);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        await using var server = new UrlTestServer();
+        var original = monitor.Settings;
+        var site = new SiteDefinition("URL check", server.Url);
         try
         {
+            await monitor.SaveSettingsAsync(original with { Sites = [site], Proxies = [], TimeoutSeconds = 5 });
+            while (!mainPage.HasUrlSpeedReadings || !mainPage.HasDrawnTimelines ||
+                !monitor.Snapshot().Samples.Any(sample => sample.SiteId == site.Id &&
+                    sample.Transfer is { BytesReceived: UrlTestServer.BodySize, MegabytesPerSecond: > 0 }))
+                await Task.Delay(50, timeout.Token);
+            if (server.Requests < 1 || server.UnexpectedTarget)
+                throw new InvalidOperationException("Automatic URL measurement did not use the configured path/query.");
             var page = await mainPage.OpenSpeedTestAsync();
             while (!page.IsLoaded || page.Width <= 0) await Task.Delay(50, timeout.Token);
-            await page.RunAsync($"http://127.0.0.1:{port}/download");
-            if (page.LastResult is not { Succeeded: true, Download.BytesReceived: 524288 })
-                throw new InvalidOperationException($"Download speed page failed: {page.LastResult?.Error}");
-            await serving;
+            await page.RunAsync();
+            if (page.LastResult is not { Succeeded: true, Download.BytesReceived: UrlTestServer.BodySize } ||
+                page.LastResult.Url != site.Url || server.Requests < 2 || server.UnexpectedTarget)
+                throw new InvalidOperationException($"Configured URL speed page failed: {page.LastResult?.Error}");
             await mainPage.Navigation.PopAsync(false);
         }
-        finally
-        {
-            await timeout.CancelAsync();
-            try { await serving; }
-            catch (OperationCanceledException) { }
-        }
-    }
-
-    private static async Task ServeAsync(TcpListener listener, CancellationToken cancellationToken)
-    {
-        using var connection = await listener.AcceptTcpClientAsync(cancellationToken);
-        await using var stream = connection.GetStream();
-        using var reader = new StreamReader(stream, Encoding.ASCII, leaveOpen: true);
-        while (await reader.ReadLineAsync(cancellationToken) is { Length: > 0 }) { }
-        await stream.WriteAsync(Encoding.ASCII.GetBytes(
-            "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 524288\r\nConnection: close\r\n\r\n"), cancellationToken);
-        var block = new byte[64 * 1024];
-        for (var i = 0; i < 8; i++)
-        {
-            await Task.Delay(40, cancellationToken);
-            await stream.WriteAsync(block, cancellationToken);
-        }
+        finally { await monitor.SaveSettingsAsync(original); }
     }
 }

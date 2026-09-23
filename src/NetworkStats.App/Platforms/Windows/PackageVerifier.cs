@@ -54,8 +54,9 @@ internal static class PackageVerifier
             await page.Navigation.PopAsync(false);
             await Task.Delay(300);
             report.Add("Navigation: settings opened and returned to timeline");
-            await SpeedTestVerifier.VerifyAsync(page);
-            report.Add("Download speed: page loaded and loopback download measured");
+            await SpeedTestVerifier.VerifyAsync(page, services.GetRequiredService<MonitorEngine>());
+            report.Add("URL speed: configured URL automatically measured and speed rendered on main timeline");
+            report.Add("URL speed: single-site page measured the same configured path and query");
             await services.GetRequiredService<MonitorEngine>().StopAsync();
             report.Insert(0, "PASS");
         }

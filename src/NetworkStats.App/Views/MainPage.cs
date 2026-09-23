@@ -12,12 +12,12 @@ public sealed class MainPage : ContentPage
     private readonly Label _status = Ui.Text("正在启动", 12, Ui.Accent, true);
     private readonly Label _schedule = Ui.Text("正在准备首次探测…", 12, Ui.Muted);
     private readonly Label _warning = Ui.Text("", 12, Ui.Red);
-    private readonly Label _detail = Ui.Text("点击任意色块，查看该分钟的响应耗时和错误详情。", 12, Ui.Muted);
+    private readonly Label _detail = Ui.Text("点击任意色块，查看该 URL 在该分钟的访问速度、耗时和下载量。", 12, Ui.Muted);
     private readonly Label _policy = Ui.Text("", 11, Ui.Muted);
-    private readonly Button _probe = Ui.Button("立即探测", true);
+    private readonly Button _probe = Ui.Button("立即测速", true);
     private readonly Button _pause = Ui.Button("暂停");
     private readonly MetricCard _available = new("最新可访问", "—", "全部网站 × 全部线路");
-    private readonly MetricCard _latency = new("平均响应", "—", "最新成功请求的响应耗时");
+    private readonly MetricCard _latency = new("平均访问耗时", "—", "最新成功 URL 请求的总耗时");
     private readonly MetricCard _routes = new("探测线路", "1", "直接连接始终保留");
     private readonly MetricCard _rate = new("窗口可用率", "—", "仅统计有数据的色块");
     private readonly Grid _metrics = new() { ColumnSpacing = 12, RowSpacing = 12 };
@@ -30,6 +30,7 @@ public sealed class MainPage : ContentPage
     private string? _configuration;
     private int _minutes = 60;
     internal bool HasDrawnTimelines => _routeViews.Count > 0 && _routeViews.All(route => route.HasDrawn);
+    internal bool HasUrlSpeedReadings => _routeViews.Any(route => route.HasSpeedReadings);
 
     public MainPage(MonitorEngine monitor, DownloadSpeedProbe downloadProbe)
     {
@@ -40,7 +41,7 @@ public sealed class MainPage : ContentPage
         NavigationPage.SetHasNavigationBar(this, false);
         var settings = Ui.Button("设置");
         settings.Clicked += async (_, _) => await Navigation.PushAsync(new SettingsPage(_monitor));
-        var speedTest = Ui.Button("下载测速");
+        var speedTest = Ui.Button("单项测速");
         speedTest.Clicked += async (_, _) => await OpenSpeedTestAsync();
         _probe.Clicked += (_, _) => { _monitor.RequestProbe(); Refresh(); };
         _pause.Clicked += async (_, _) =>
@@ -54,8 +55,8 @@ public sealed class MainPage : ContentPage
         header.Add(new VerticalStackLayout
         {
             Spacing = 7,
-            Children = { Ui.Text("NETWORK STATS", 11, Ui.Accent, true), Ui.Text("网络观测站", 28, bold: true),
-                Ui.Text($"{PlatformName()} · 此设备的真实网络表现", 12, Ui.Muted) }
+            Children = { Ui.Text($"NETWORK STATS · v{AppInfo.Current.VersionString}", 11, Ui.Accent, true), Ui.Text("网络观测站", 28, bold: true),
+                Ui.Text($"{PlatformName()} · 自动测量每个 URL 的访问速度", 12, Ui.Muted) }
         });
         header.Add(settings, 1);
         settings.VerticalOptions = LayoutOptions.Center;
@@ -165,17 +166,12 @@ public sealed class MainPage : ContentPage
         _pause.Text = _monitor.UserPaused ? "继续探测" : "暂停";
         _warning.Text = snapshot.Worker.Error ?? snapshot.Warning ?? "";
         _warning.IsVisible = !string.IsNullOrEmpty(_warning.Text);
-        _policy.Text = $"绿色 ≤ {snapshot.Settings.SlowThresholdMs:N0} ms · 黄色 > {snapshot.Settings.SlowThresholdMs:N0} ms · 超时 {snapshot.Settings.TimeoutSeconds} 秒 · 每 {snapshot.Settings.IntervalSeconds} 秒采样 · 历史保留 {snapshot.Settings.RetentionHours} 小时\n耗时为 GET 请求到响应头的时间；HTTP 4xx / 5xx 记为不可访问。";
+        _policy.Text = $"绿色 ≤ {snapshot.Settings.SlowThresholdMs:N0} ms · 黄色 > {snapshot.Settings.SlowThresholdMs:N0} ms · 超时 {snapshot.Settings.TimeoutSeconds} 秒 · 每 {snapshot.Settings.IntervalSeconds} 秒采样 · 历史保留 {snapshot.Settings.RetentionHours} 小时\n直接读取每个配置 URL 的响应体，每次最多 1 MB；速度 = 下载量 / 请求总耗时（含连接和响应等待），不加载页面内的图片或脚本。";
     }
 
     private void SelectCell(CellSelection selection)
     {
-        var prefix = $"{selection.Site.Name} / {selection.Route.Name} · {selection.Minute.ToLocalTime():MM-dd HH:mm}";
-        _detail.Text = selection.Sample is not { } sample ? $"{prefix}\n无数据：这一分钟没有完成的探测。"
-            : $"{prefix}\n{Ui.StatusText(sample.Status)} · {sample.LatencyMs:N0} ms" +
-              (sample.HttpStatus is { } code ? $" · HTTP {code}" : "") +
-              $" · 采样于 {sample.CheckedAt.ToLocalTime():HH:mm:ss}" +
-              (sample.Error is { } error ? $"\n{error}" : "");
+        _detail.Text = ProbePresentation.Describe(selection);
         _detail.TextColor = selection.Sample is { Status: ProbeStatus.Unreachable } ? Ui.Red : Ui.Ink;
     }
 

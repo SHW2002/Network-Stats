@@ -19,7 +19,7 @@ internal static class EngineTests
         listener.Stop();
         var settings = new MonitorSettings
         {
-            Sites = [new("target", target.Address + "/fast")],
+            Sites = [new("target", target.Address + "/download?source=configured")],
             Proxies = [new("working", "http", "127.0.0.1", new Uri(proxy.Address).Port),
                 new("unavailable", "http", "127.0.0.1", unusedPort)]
         };
@@ -31,6 +31,11 @@ internal static class EngineTests
         Check.That(samples.Single(sample => sample.RouteId == "direct").Status != ProbeStatus.Unreachable, "Failed proxy contaminated direct route");
         Check.That(samples.Single(sample => sample.RouteId == settings.Proxies[0].Id).Status != ProbeStatus.Unreachable, "Working proxy failed");
         Check.That(samples.Single(sample => sample.RouteId == settings.Proxies[1].Id).Status == ProbeStatus.Unreachable, "Unavailable proxy was not red");
+        Check.That(samples.Where(sample => sample.Status != ProbeStatus.Unreachable)
+            .All(sample => sample.Transfer is { BytesReceived: DownloadTestEndpoints.Size, MegabytesPerSecond: > 0 }),
+            "Automatic direct/proxy rounds did not measure configured URL bodies");
+        Check.That(target.LastRawTarget == "/download?source=configured" && proxy.LastRawTarget == settings.Sites[0].Url,
+            "Automatic measurements changed the configured URL");
     }
 
     public static async Task SchedulingAndConcurrencyAsync()

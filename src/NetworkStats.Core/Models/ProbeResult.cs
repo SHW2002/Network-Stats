@@ -9,7 +9,8 @@ public sealed record ProbeResult(
     ProbeStatus Status,
     long LatencyMs,
     int? HttpStatus,
-    string? Error)
+    string? Error,
+    UrlTransfer? Transfer = null)
 {
     public long Minute => CheckedAt.ToUnixTimeSeconds() / 60;
 }

@@ -17,7 +17,7 @@ internal sealed class TimelineDrawable : IDrawable
         {
             var sample = Samples[index];
             canvas.FillColor = sample is null ? Ui.Empty : Ui.StatusColor(sample.Status);
-            var rectangle = new RectF(index * step + gap / 2, 17, step - gap, 22);
+            var rectangle = new RectF(index * step + gap / 2, (dirtyRect.Height - 22) / 2, step - gap, 22);
             canvas.FillRoundedRectangle(rectangle, Math.Min(3, (step - gap) / 2));
             if (SelectedIndex == index)
             {

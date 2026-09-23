@@ -10,6 +10,9 @@ public sealed record DownloadProgress(long BytesReceived, TimeSpan TransferTime,
     public double MegabytesPerSecond => TransferTime.TotalSeconds > 0
         ? BytesReceived / 1_000_000.0 / TransferTime.TotalSeconds : 0;
     public double MegabitsPerSecond => MegabytesPerSecond * 8;
+    public double AccessMegabytesPerSecond => TotalTime.TotalSeconds > 0
+        ? BytesReceived / 1_000_000.0 / TotalTime.TotalSeconds : 0;
+    public double AccessMegabitsPerSecond => AccessMegabytesPerSecond * 8;
 }
 
 public sealed record DownloadSpeedResult(
