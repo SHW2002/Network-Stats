@@ -22,6 +22,7 @@ internal static class StartupDiagnostics
         catch { /* 诊断失败不能阻止启动。 */ }
         Write($"Starting; runtime={AppContext.BaseDirectory}");
         AppDomain.CurrentDomain.UnhandledException += (_, args) => Write($"Unhandled: {args.ExceptionObject}");
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => Write($"Process exiting; code={Environment.ExitCode}");
     }
 
     public static void Write(string message)

@@ -69,7 +69,7 @@ internal static class PackageVerifier
             await PreferenceVerifier.VerifyAsync(app, page, services.GetRequiredService<MonitorEngine>(), native);
             report.Add("Preferences: light/dark/system themes, saved settings and close-to-minimize verified");
             report.Add("Startup: settings toggle and persistence verified without changing real login items");
-            await services.GetRequiredService<MonitorEngine>().StopAsync();
+            // 保持探测运行，由真正的窗口关闭/托盘退出入口完成停止及历史写入。
             report.Insert(0, "PASS");
         }
         catch (Exception exception)
@@ -86,7 +86,7 @@ internal static class PackageVerifier
             var native = (Microsoft.UI.Xaml.Window)app.Windows.Single().Handler!.PlatformView!;
             var message = services.GetRequiredService<MonitorEngine>().Settings.MinimizeOnClose
                 ? Native.RegisterWindowMessage(TrayIcon.ExitMessageName) : 0x0010u;
-            // 脚本必须等到真正退出：分别验证普通关闭和托盘的显式退出可绕过最小化设置。
+            // 脚本必须等到真正退出，并检查日志确认后台探测在窗口关闭前已停止。
             Native.PostMessage(WinRT.Interop.WindowNative.GetWindowHandle(native), message, 0, 0);
         }
     }

@@ -13,15 +13,17 @@ internal sealed class TrayIcon : IDisposable
     internal const string ExitPropertyName = "NetworkStats.ExplicitExit";
     private readonly uint _exitMessage;
     private readonly Func<bool> _minimizeOnClose;
+    private readonly Action _requestExit;
     private Native.NotifyIconData _data;
     private bool _installed;
     private bool _disposed;
     private bool _exiting;
 
-    public TrayIcon(Microsoft.UI.Xaml.Window window, Func<bool> minimizeOnClose)
+    public TrayIcon(Microsoft.UI.Xaml.Window window, Func<bool> minimizeOnClose, Action requestExit)
     {
         _window = window;
         _minimizeOnClose = minimizeOnClose;
+        _requestExit = requestExit;
         _handle = WinRT.Interop.WindowNative.GetWindowHandle(window);
         _callback = WindowMessage;
         _taskbarCreated = Native.RegisterWindowMessage("TaskbarCreated");
@@ -47,10 +49,12 @@ internal sealed class TrayIcon : IDisposable
 
     private nint WindowMessage(nint window, uint message, nuint wParam, nint lParam, nuint id, nuint data)
     {
-        if (message == _exitMessage) { Exit(); return 0; }
-        if (message == 0x0010 && !_exiting && _minimizeOnClose()) // WM_CLOSE
+        if (message == _exitMessage) { _requestExit(); return 0; }
+        if (message == 0x0010 && !_exiting) // WM_CLOSE
         {
-            Native.ShowWindow(_handle, 6); // SW_MINIMIZE；托盘可用时由 WM_SIZE 隐藏，否则保留任务栏入口。
+            if (_minimizeOnClose())
+                Native.ShowWindow(_handle, 6); // SW_MINIMIZE；托盘可用时由 WM_SIZE 隐藏，否则保留任务栏入口。
+            else _requestExit();
             return 0;
         }
         if (message == _taskbarCreated)
@@ -85,7 +89,7 @@ internal sealed class TrayIcon : IDisposable
             Native.SetForegroundWindow(_handle);
             var command = Native.TrackPopupMenu(menu, 0x0100 | 0x0002, position.X, position.Y, 0, _handle, 0);
             if (command == 1) Restore();
-            if (command == 2) Exit();
+            if (command == 2) _requestExit();
             Native.PostMessage(_handle, 0, 0, 0);
         }
         finally { Native.DestroyMenu(menu); }

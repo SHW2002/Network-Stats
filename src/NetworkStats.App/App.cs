@@ -8,14 +8,38 @@ public sealed class App(MainPage mainPage, MonitorEngine monitor) : Application
 {
 #if WINDOWS
     private Platforms.Windows.TrayIcon? _tray;
+    private Task? _exitTask;
+    private bool _exiting;
     internal bool TrayInitialized => _tray is not null;
     internal void MinimizeForStartup() => _tray?.Minimize();
-    internal async Task ExitForUpdateAsync()
+    internal Task ExitForUpdateAsync()
     {
-        mainPage.CancelSpeedTest();
-        await monitor.StopAsync();
-        if (_tray is not null) _tray.Exit();
-        else if (Windows.Single().Handler?.PlatformView is Microsoft.UI.Xaml.Window native) native.Close();
+        if (_exitTask is { IsFaulted: true } or { IsCanceled: true }) _exitTask = null;
+        return _exitTask ??= StopAndCloseAsync();
+    }
+
+    private async Task StopAndCloseAsync()
+    {
+        _exiting = true;
+        try
+        {
+            mainPage.CancelSpeedTest();
+            await monitor.StopAsync();
+            Platforms.Windows.StartupDiagnostics.Write("Monitoring stopped and history flushed before window close");
+            if (_tray is not null) _tray.Exit();
+            else if (Windows.Single().Handler?.PlatformView is Microsoft.UI.Xaml.Window native) native.Close();
+        }
+        catch { _exiting = false; throw; }
+    }
+
+    private async void RequestExit()
+    {
+        try { await ExitForUpdateAsync(); }
+        catch (Exception exception)
+        {
+            _exitTask = null;
+            Platforms.Windows.StartupDiagnostics.Write($"Exit failed: {exception}");
+        }
     }
 #endif
 
@@ -66,7 +90,7 @@ public sealed class App(MainPage mainPage, MonitorEngine monitor) : Application
         {
             if (window.Handler?.PlatformView is Microsoft.UI.Xaml.Window nativeWindow)
             {
-                _tray ??= new Platforms.Windows.TrayIcon(nativeWindow, () => monitor.Settings.MinimizeOnClose);
+                _tray ??= new Platforms.Windows.TrayIcon(nativeWindow, () => monitor.Settings.MinimizeOnClose, RequestExit);
                 Platforms.Windows.WindowTheme.Apply(nativeWindow);
             }
         };
@@ -97,6 +121,9 @@ public sealed class App(MainPage mainPage, MonitorEngine monitor) : Application
 
     private async Task ResumeAsync()
     {
+#if WINDOWS
+        if (_exiting) return;
+#endif
         if (monitor.UserPaused) return;
         try { await monitor.StartAsync(); }
         catch (Exception exception)

@@ -20,6 +20,7 @@ $requestPath = Join-Path $sessionDirectory 'install.json'
 $results = [Collections.Generic.List[string]]::new()
 $oldProcess = $null
 $helperProcess = $null
+$updatedProcess = $null
 $passed = $false
 try {
     New-Item -ItemType Directory -Path (Join-Path $sessionDirectory 'helper'), (Join-Path $sessionDirectory 'payload') -Force | Out-Null
@@ -57,6 +58,11 @@ try {
     [IO.File]::WriteAllText((Join-Path $sessionDirectory ('exit-' + $oldProcess.Id)), '')
     if (-not $oldProcess.WaitForExit(10000)) { throw 'Old fixture did not exit.' }
     if (-not $helperProcess.WaitForExit(55000) -or $helperProcess.ExitCode -ne 0) { throw 'Real package replacement failed.' }
+    $running = @(Get-Process -Name 'Network-Stats' -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $target })
+    if ($running.Count -ne 1) { throw 'Expected exactly one restarted application.' }
+    $updatedProcess = $running[0]
+    # 在进程退出前持有句柄，确保报告 PASS 后的退出崩溃也能被检测到。
+    [void]$updatedProcess.Handle
     if (-not (Test-Path -LiteralPath (Join-Path $sessionDirectory 'complete'))) { throw 'New GUI did not acknowledge startup.' }
     if ((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne $packageHash) { throw 'Updated executable hash mismatch.' }
     if ((Get-FileHash -LiteralPath (Join-Path $sessionDirectory 'previous.exe') -Algorithm SHA256).Hash -ne $fixtureHash) { throw 'Old executable backup mismatch.' }
@@ -65,9 +71,8 @@ try {
         if ([DateTime]::UtcNow -gt $deadline) { throw 'Updated GUI verification timed out.' }
         Start-Sleep -Milliseconds 100
     }
-    foreach ($updatedProcess in @(Get-Process -Name 'Network-Stats' -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $target })) {
-        if (-not $updatedProcess.WaitForExit(10000)) { throw 'Updated GUI did not exit after verification.' }
-    }
+    if (-not $updatedProcess.WaitForExit(10000)) { throw 'Updated GUI did not exit after verification.' }
+    if ($updatedProcess.ExitCode -ne 0) { throw "Updated GUI exited abnormally ($($updatedProcess.ExitCode))." }
     $guiReport = Get-Content -LiteralPath $report
     $results.AddRange([string[]]$guiReport)
     if ($guiReport[0] -ne 'PASS') { throw 'Updated GUI verification failed.' }
@@ -84,6 +89,7 @@ try {
     }
     if ($helperProcess) { $helperProcess.Dispose() }
     if ($oldProcess) { $oldProcess.Dispose() }
+    if ($updatedProcess) { $updatedProcess.Dispose() }
     $results.Insert(0, $(if ($passed) { 'PASS' } else { 'FAIL' }))
     $results | Set-Content -LiteralPath (Join-Path $workspace 'artifacts/windows-update-check.txt') -Encoding utf8
     $results | Write-Output

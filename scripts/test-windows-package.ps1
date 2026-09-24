@@ -67,6 +67,13 @@ try {
             $report = Get-Content -LiteralPath $testReport
             $results.AddRange([string[]]$report)
             $report | Write-Output
+            $exitStatus = 'Process exit code: {0} (0x{0:X8})' -f $process.ExitCode
+            $results.Add($exitStatus)
+            Write-Output $exitStatus
+            $shutdownLog = Get-Content -LiteralPath (Join-Path $testDirectory "logs/startup-$($process.Id).log") -Raw
+            if ($shutdownLog -notmatch '(?s)Monitoring stopped and history flushed before window close.*WinUI message loop returned.*Process exiting; code=0') {
+                throw "Orderly shutdown was not completed. $exitStatus"
+            }
             if ($process.ExitCode -ne 0 -or $report[0] -ne 'PASS' -or
                 $report -notcontains 'MAUI: window loaded, native templates applied, timeline drawing completed' -or
                 $report -notcontains 'Updates: proxy persistence, version check, verified download and install handoff' -or
@@ -76,7 +83,7 @@ try {
                 $report -notcontains 'Timeline: initial loading and previous results retained until new probes finish' -or
                 $report -notcontains 'Startup: settings toggle and persistence verified without changing real login items' -or
                 $report -notcontains 'Preferences: light/dark/system themes, saved settings and close-to-minimize verified') {
-                throw 'Full window verification failed.'
+                throw "Full window verification failed. $exitStatus"
             }
         } finally { $process.Dispose() }
     }
