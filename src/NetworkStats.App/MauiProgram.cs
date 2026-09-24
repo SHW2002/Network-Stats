@@ -12,6 +12,9 @@ public static class MauiProgram
     public static MauiApp CreateMauiApp()
     {
         var builder = MauiApp.CreateBuilder().UseMauiApp<App>();
+#if WINDOWS
+        builder.ConfigureMauiHandlers(handlers => handlers.AddHandler<ScrollView, Platforms.Windows.MouseWheelScrollViewHandler>());
+#endif
         builder.Services.AddSingleton(_ => new SettingsStore(AppStorage.DataDirectory, new MonitorSettings()));
         builder.Services.AddSingleton(_ => new HistoryStore(AppStorage.DataDirectory));
         builder.Services.AddSingleton<WebsiteProbe>();

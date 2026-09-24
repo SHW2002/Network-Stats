@@ -48,6 +48,9 @@ internal static class PackageVerifier
             report.Add("Tray: window integration initialized; bundled icon loaded");
             report.Add($"Window: {window.Width:F0} x {window.Height:F0} DIP; content {page.Width:F0} x {page.Height:F0} DIP");
             await WindowCapture.SaveAsync(native, "main");
+            await ScrollWheelVerifier.VerifyAsync(page, services.GetRequiredService<MonitorEngine>(), native);
+            report.Add("Scrolling: vertical, horizontal and continuous wheel input over timelines and settings verified");
+            StartupDiagnostics.Write("Scrolling verification completed");
 
             await page.Navigation.PushAsync(new SettingsPage(services.GetRequiredService<MonitorEngine>()), false);
             await Task.Delay(300);
@@ -57,7 +60,9 @@ internal static class PackageVerifier
             await page.Navigation.PopAsync(false);
             await Task.Delay(300);
             report.Add("Navigation: settings opened and returned to timeline");
+            StartupDiagnostics.Write("Navigation verification completed");
             await UpdatePageVerifier.VerifyAsync(page, services.GetRequiredService<MonitorEngine>());
+            StartupDiagnostics.Write("Updates verification completed");
             report.Add($"Updater capability: {UpdatesCapability()}");
             report.Add("Updates: proxy persistence, version check, verified download and install handoff");
             await SpeedTestVerifier.VerifyAsync(page, services.GetRequiredService<MonitorEngine>());
