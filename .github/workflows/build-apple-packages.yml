@@ -71,7 +71,7 @@ jobs:
 
           for rid in maccatalyst-arm64 maccatalyst-x64; do
             output="$RUNNER_TEMP/$rid"
-            dotnet publish "$PROJECT" \
+            dotnet build "$PROJECT" \
               -p:NetworkStatsTargetFramework="$FRAMEWORK_MAC" \
               -f "$FRAMEWORK_MAC" \
               -c Release \
