@@ -69,10 +69,11 @@ public sealed class MainPage : ContentPage
         settings.VerticalOptions = LayoutOptions.Center;
         var range = new Picker
         {
-            Title = "时间范围", FontSize = 12,
+            Title = Ui.IsDesktop ? "" : "时间范围", FontSize = 12,
             ItemsSource = new[] { "最近 1 小时", "最近 3 小时", "最近 6 小时", "最近 24 小时" }, SelectedIndex = 0,
             WidthRequest = 142
         };
+        SemanticProperties.SetDescription(range, "时间范围");
         Ui.ThemePicker(range);
         range.SelectedIndexChanged += (_, _) =>
         {
@@ -81,8 +82,17 @@ public sealed class MainPage : ContentPage
             Refresh();
         };
         var chartHeader = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)] };
-        chartHeader.Add(new VerticalStackLayout { Spacing = 4,
-            Children = { Ui.Text("可访问性时间线", 19, bold: true), _timelineStatus } });
+        if (Ui.IsDesktop)
+        {
+            chartHeader.RowDefinitions = [new(GridLength.Auto), new(GridLength.Auto)];
+            chartHeader.RowSpacing = 3;
+            chartHeader.Add(Ui.Text("可访问性时间线", 19, bold: true));
+            chartHeader.Add(_timelineStatus, 0, 1);
+            Grid.SetColumnSpan(_timelineStatus, 2);
+        }
+        else
+            chartHeader.Add(new VerticalStackLayout { Spacing = 4,
+                Children = { Ui.Text("可访问性时间线", 19, bold: true), _timelineStatus } });
         chartHeader.Add(range, 1);
         var legend = new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap };
         foreach (var (text, color) in new[] { ("正常", Ui.Green), ("较慢", Ui.Yellow), ("不可访问", Ui.Red), ("无数据", Ui.Empty) })

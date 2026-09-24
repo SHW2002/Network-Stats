@@ -14,6 +14,7 @@ internal sealed class RouteTimelineView : ContentView
     private DateTimeOffset _start;
     private int _minutes = 60;
     private bool _needsScroll = true;
+    private double _viewportWidth;
     internal bool HasDrawn => _rows.Count > 0 && _rows.All(row => row.Drawing.HasDrawn);
     internal bool HasDrawnCurrentTheme => HasDrawn && _rows.All(row => row.Drawing.DrawnTheme == Application.Current!.RequestedTheme);
     internal bool HasSpeedReadings => _rows.Any(row => row.Summary.HasSpeedReading);
@@ -105,6 +106,12 @@ internal sealed class RouteTimelineView : ContentView
     private void ResizePlot()
     {
         if (_scroll.Width <= 0) return;
+        if (_viewportWidth != _scroll.Width)
+        {
+            // 正在看最新记录时，缩窄窗口后继续保留最新格；手动回看历史时保留当前位置。
+            _needsScroll |= _charts.WidthRequest - _scroll.ScrollX <= _viewportWidth + 2;
+            _viewportWidth = _scroll.Width;
+        }
         _charts.WidthRequest = Math.Max(_scroll.Width, _minutes * 5);
         if (_needsScroll)
         {
