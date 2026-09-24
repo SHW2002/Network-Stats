@@ -1,0 +1,135 @@
+name: Publish release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to publish
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Install Windows workload
+        run: dotnet workload install maui-windows
+      - name: Run core checks
+        run: ./scripts/test.ps1
+      - name: Publish and verify Windows package
+        run: ./scripts/publish-windows.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-package
+          path: artifacts/windows/Network-Stats.exe
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-verification
+          path: artifacts/windows-package-check.txt
+          if-no-files-found: ignore
+
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-java@v4
+        with:
+          distribution: microsoft
+          java-version: '21'
+      - name: Install Android tooling
+        run: |
+          dotnet workload install maui-android
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Publish and verify Android package
+        run: |
+          dotnet publish src/NetworkStats.App/NetworkStats.App.csproj \
+            -p:NetworkStatsTargetFramework=net10.0-android -f net10.0-android \
+            -c Release -r android-arm64 -p:AndroidPackageFormats=apk \
+            -p:AndroidSdkDirectory="$ANDROID_HOME" -p:JavaSdkDirectory="$JAVA_HOME" \
+            -p:DebugType=None -p:DebugSymbols=false -o artifacts/android
+          mkdir -p artifacts/android-package
+          cp artifacts/android/com.networkstats.monitor-Signed.apk artifacts/android-package/Network-Stats-Android-arm64.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs artifacts/android-package/Network-Stats-Android-arm64.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-package
+          path: artifacts/android-package/*.apk
+          if-no-files-found: error
+
+  apple:
+    uses: ./.github/workflows/build-apple-packages.yml
+    with:
+      ref: ${{ inputs.tag || github.ref_name }}
+
+  publish:
+    needs: [windows, android, apple]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-package
+          path: artifacts/release
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-package
+          path: artifacts/release
+      - uses: actions/download-artifact@v4
+        with:
+          name: apple-packages-${{ github.run_id }}
+          path: artifacts/release
+      - name: Check version and prepare checksums
+        shell: bash
+        run: |
+          test "$RELEASE_TAG" = "v$(sed -n 's:.*<ApplicationDisplayVersion>\(.*\)</ApplicationDisplayVersion>.*:\1:p' src/NetworkStats.App/NetworkStats.App.csproj | tr -d '\r')"
+          test -f "docs/releases/$RELEASE_TAG.md"
+          cd artifacts/release
+          test "$(find . -maxdepth 1 -type f \( -name '*.exe' -o -name '*.apk' -o -name '*.zip' \) | wc -l)" -eq 6
+          sha256sum Network-Stats.exe Network-Stats-Android-arm64.apk Network-Stats-macOS-*.zip Network-Stats-iOS-Simulator-*.zip > SHA256SUMS.txt
+          sha256sum --check SHA256SUMS.txt
+      - name: Upload complete draft and publish as latest
+        shell: bash
+        run: |
+          if gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft' > "$RUNNER_TEMP/release-state"; then
+            test "$(cat "$RUNNER_TEMP/release-state")" = true
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "Network Stats $RELEASE_TAG" --notes-file "docs/releases/$RELEASE_TAG.md"
+          fi
+          gh release upload "$RELEASE_TAG" artifacts/release/Network-Stats.exe artifacts/release/*.apk artifacts/release/*.zip artifacts/release/SHA256SUMS.txt --clobber
+          gh release edit "$RELEASE_TAG" --draft=false --latest --notes-file "docs/releases/$RELEASE_TAG.md"

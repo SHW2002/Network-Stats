@@ -12,9 +12,9 @@
     <MauiVersion>10.0.110</MauiVersion>
     <ApplicationTitle>Network Stats</ApplicationTitle>
     <ApplicationId>com.networkstats.monitor</ApplicationId>
-    <ApplicationDisplayVersion>1.4.2</ApplicationDisplayVersion>
-    <ApplicationVersion>10</ApplicationVersion>
-    <Version>1.4.2</Version>
+    <ApplicationDisplayVersion>1.4.3</ApplicationDisplayVersion>
+    <ApplicationVersion>11</ApplicationVersion>
+    <Version>1.4.3</Version>
     <DefineConstants Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
@@ -35,10 +35,14 @@
     <MauiSplashScreen Include="Resources/Splash/splash.svg" Color="#F5F7FB" BaseSize="128,128" />
   </ItemGroup>
   <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
-    <MauiIcon Include="Resources/AppIcon/appicon.svg" ForegroundFile="Resources/AppIcon/appiconfg.svg" />
+    <!-- Adaptive icons show the central 72/108 of each layer; preserve the artwork's padding after cropping. -->
+    <MauiIcon Include="Resources/AppIcon/Android/appicon.svg" ForegroundFile="Resources/AppIcon/appicon.svg" Color="#F5F7FB" ForegroundScale="0.6666667" />
   </ItemGroup>
-  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'android'">
-    <MauiIcon Include="Resources/AppIcon/appicon.svg" ForegroundFile="Resources/AppIcon/appiconfg.svg" Color="#172B45" />
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
+    <MauiIcon Include="Resources/AppIcon/appicon.svg" Color="#F5F7FB" />
+  </ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'android' And $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'ios'">
+    <MauiIcon Include="Resources/AppIcon/appicon.svg" />
   </ItemGroup>
   <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
     <Content Include="Platforms/Windows/app.ico" Link="app.ico" CopyToOutputDirectory="PreserveNewest" />

@@ -1,41 +1,51 @@
-![Network Stats GUI 主界面](docs/images/main-window.png)
+![Network Stats main window](docs/images/main-window.png)
 
-# Network Stats · 网络观测站
+# Network Stats
 
-用时间线查看网站是否可访问、访问耗时和响应体下载速度，持续观察直连与代理线路的网络表现。
+English | [简体中文](README_CN.md)
 
-**尤其适合“科学上网”用户**：同时监测常用网站，比较直连和 HTTP、HTTPS、SOCKS5 代理的连通性与稳定性，快速发现线路异常；代理使用你已有的服务。
+Track website availability, response time, and response-body download speed on a timeline, with continuous monitoring of direct and proxy connections.
 
-## 使用引导
+**Useful for users who access websites through proxies**: monitor multiple websites and compare direct, HTTP, HTTPS, and SOCKS5 connections to identify connectivity or stability problems, using your existing proxy service.
 
-1. 在 [GitHub Releases](https://github.com/SHW2002/Network-Stats/releases/latest) 下载对应平台包：Windows x64 使用 **Network-Stats.exe**，Android arm64 使用 APK，macOS 按 Apple Silicon / Intel 选择 ZIP；iOS 当前提供 Xcode Simulator 包。
-2. 打开 **设置**，添加要监测的网站和代理地址，保存后自动开始探测；直连始终保留，本机代理通常填写 `127.0.0.1` 和代理软件提供的端口。
-3. 查看时间线：绿色表示正常、黄色表示较慢、红色表示不可访问，空格表示没有数据；可切换最近 1、3、6、24 小时，点击色块查看详情。
-4. 使用 **立即测速** 刷新整组结果，或进入 **单项测速** 复测一个网站；在 **设置 → 软件更新** 中检查并安装新版本，也可单独配置更新代理。
+## Getting started
 
-Windows 最小化后会在托盘继续监测，双击托盘图标恢复，右键可退出；设置中可调整深浅色主题、开机自启动及关闭窗口时的行为。
+1. Download your platform's package from [GitHub Releases](https://github.com/SHW2002/Network-Stats/releases/latest): **Network-Stats.exe** for Windows x64, APK for Android arm64, or ZIP for Apple Silicon / Intel macOS. iOS packages currently target the Xcode Simulator.
+2. Open **Settings**, add websites and proxy addresses, and save to start monitoring. Direct connections are always included. Local proxies usually use `127.0.0.1` and the port provided by your proxy software.
+3. Read the timeline: green means healthy, yellow means slow, red means unavailable, and an empty cell means no data. Select the last 1, 3, 6, or 24 hours and click a cell for details.
+4. Use **Test now** to refresh all results or **Single-site test** to retest one website. Check for and install updates in **Settings → Software updates**, with a separate proxy setting for updates.
 
-测速反映目标 URL 的响应体传输情况，不能直接当作宽带峰值；样本不足时会明确提示，配置和历史记录保存在本机。
+On Windows, monitoring continues in the system tray when minimized. Double-click the tray icon to restore the window or right-click to exit. Settings include light/dark themes, launch at login, and window-close behavior.
 
-## 开发框架
+Speed measurements describe transfers from the target URL, rather than your connection's maximum bandwidth. Small samples are explicitly indicated. Settings and history are stored locally.
 
-- **.NET 10 + .NET MAUI**：原生界面，支持 Windows、Android、iOS 和 macOS（Mac Catalyst）工程。
-- **GraphicsView**：绘制每分钟网络状态时间图；Windows 界面基于 WinUI 3。
-- **NetworkStats.Core**：HTTP 探测、代理、调度、历史存储与更新逻辑；**NetworkStats.App**：界面及平台集成。
-- 当前 Release 提供 Windows x64、Android arm64、macOS arm64 / x64 及 iOS 模拟器 arm64 / x64；iOS 真机包需要 Apple 开发者签名，macOS 包采用 ad-hoc 签名且未公证。
+## Development
 
-安装 .NET 10 SDK 后，在 Windows 上运行：
+- **.NET 10 + .NET MAUI** provides native interfaces for Windows, Android, iOS, and macOS (Mac Catalyst).
+- **GraphicsView** draws per-minute network status timelines; Windows uses WinUI 3.
+- **NetworkStats.Core** contains HTTP probes, proxies, scheduling, history storage, and update logic. **NetworkStats.App** contains the UI and platform integrations.
+- Current releases include Windows x64, Android arm64, macOS arm64 / x64, and iOS Simulator arm64 / x64. iOS device packages require Apple developer signing. macOS packages are ad-hoc signed and are not notarized.
+
+Install the .NET 10 SDK, then run on Windows:
 
 ```powershell
 dotnet workload install maui-windows
 .\scripts\run-windows.ps1 -Development
 ```
 
-本地测试和生成 Windows 单文件包：
+Run local tests and create the Windows single-file package:
 
 ```powershell
 .\scripts\test.ps1
 .\scripts\publish-windows.ps1
 ```
 
-[更新日志](CHANGELOG.md) · [MIT License](LICENSE)
+Each `dotnet publish` also archives the publish directory under `bin/Release-Archives/`, named `application-platform-package-type-yymmdd-hhmmss.zip`.
+
+Shared icon SVGs live in `src/NetworkStats.App/Resources/AppIcon/`. After editing them, run `./scripts/icons/update-icons.ps1` on Windows to regenerate the Windows ICO and documentation PNG. The rounded tile has 16.4% padding on each side; Android and iOS use a light outer background for platform icon compatibility.
+
+[Changelog](CHANGELOG.md) · [MIT License](LICENSE)
+
+<p align="center">
+  <img src="docs/images/app-icon.png" alt="Network Stats rounded icon" width="20%" />
+</p>

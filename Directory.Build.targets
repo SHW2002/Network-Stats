@@ -1,0 +1,21 @@
+<Project>
+  <Target Name="ArchivePublishedApplication" AfterTargets="Publish"
+          Condition="'$(IsPublishable)' == 'true' And '$(IsCrossTargetingBuild)' != 'true' And Exists('$(PublishDir)')">
+    <PropertyGroup>
+      <_ArchivePlatform>$([System.String]::Copy('$(TargetPlatformIdentifier)').ToLowerInvariant())</_ArchivePlatform>
+      <_ArchivePlatform Condition="'$(_ArchivePlatform)' == 'windows'">win</_ArchivePlatform>
+      <_ArchivePlatform Condition="'$(_ArchivePlatform)' == 'maccatalyst'">mac</_ArchivePlatform>
+      <_ArchivePlatform Condition="'$(_ArchivePlatform)' == ''">$(RuntimeIdentifier)</_ArchivePlatform>
+      <_ArchivePlatform Condition="'$(_ArchivePlatform)' == ''">any</_ArchivePlatform>
+      <_ArchiveType>portable</_ArchiveType>
+      <_ArchiveType Condition="'$(_ArchivePlatform)' == 'android'">apk</_ArchiveType>
+      <_ArchiveType Condition="'$(_ArchivePlatform)' == 'ios'">app</_ArchiveType>
+      <_ArchiveTimestamp>$([System.DateTime]::Now.ToString('yyMMdd-HHmmss'))</_ArchiveTimestamp>
+      <_ArchiveDirectory>$(MSBuildThisFileDirectory)bin/Release-Archives/</_ArchiveDirectory>
+      <_ArchivePath>$(_ArchiveDirectory)$(AssemblyName)-$(_ArchivePlatform)-$(_ArchiveType)-$(_ArchiveTimestamp).zip</_ArchivePath>
+    </PropertyGroup>
+    <MakeDir Directories="$(_ArchiveDirectory)" />
+    <ZipDirectory SourceDirectory="$(PublishDir)" DestinationFile="$(_ArchivePath)" Overwrite="false" />
+    <Message Importance="high" Text="Publish archive: $(_ArchivePath)" />
+  </Target>
+</Project>
