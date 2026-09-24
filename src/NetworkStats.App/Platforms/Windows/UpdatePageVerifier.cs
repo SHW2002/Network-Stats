@@ -13,6 +13,8 @@ internal static class UpdatePageVerifier
 {
     internal static async Task VerifyAsync(MainPage mainPage, MonitorEngine monitor)
     {
+        if (Environment.GetEnvironmentVariable("NETWORKSTATS_REQUIRE_UPDATER") == "1" && !UpdateServices.CreateInstaller().IsSupported)
+            throw new InvalidOperationException("The distributed single-file package must support automatic installation.");
         var original = monitor.Settings;
         var tag = "v9999.0.0";
         string? usedProxy = null;

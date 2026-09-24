@@ -4,6 +4,8 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $workspace = Split-Path -Parent $PSScriptRoot
+$privateSdk = Join-Path $env:LOCALAPPDATA 'NetworkStats/dotnet/dotnet.exe'
+$sdkDirectory = if (Test-Path -LiteralPath $privateSdk) { Split-Path -Parent $privateSdk } else { Split-Path -Parent (Get-Command dotnet).Source }
 if (-not ('WindowsDesktopProcess' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'WindowsDesktopProcess.cs') }
 $source = (Resolve-Path -LiteralPath $ExecutablePath).Path
 $fixture = (Resolve-Path -LiteralPath $OldFixturePath).Path
@@ -33,10 +35,11 @@ try {
     } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $dataDirectory 'settings.json') -Encoding utf8
     $environment = @{}
     foreach ($entry in [Environment]::GetEnvironmentVariables().GetEnumerator()) { $environment[$entry.Key] = $entry.Value }
-    $environment['DOTNET_ROOT'] = Join-Path $env:LOCALAPPDATA 'NetworkStats/dotnet'
+    $environment['DOTNET_ROOT'] = $sdkDirectory
     $environment['DOTNET_ROOT_X64'] = $environment['DOTNET_ROOT']
     $environment['DOTNET_BUNDLE_EXTRACT_BASE_DIR'] = Join-Path $testRoot 'bundle'
     $environment['NETWORKSTATS_DIAGNOSTICS_DIRECTORY'] = Join-Path $testRoot 'logs'
+    $environment['NETWORKSTATS_REQUIRE_UPDATER'] = '1'
     $environment.Remove('NETWORKSTATS_SCREENSHOT_DIRECTORY')
     $block = (($environment.Keys | Sort-Object | ForEach-Object { $_ + '=' + $environment[$_] }) -join "`0") + "`0`0"
     $oldProcess = [WindowsDesktopProcess]::new($target, ('--hold "' + $sessionDirectory + '"'), $testRoot, $block)

@@ -49,6 +49,7 @@ try {
     $environment.Remove('MICROSOFT_WINDOWSAPPRUNTIME_BASE_DIRECTORY')
     $environment['DOTNET_BUNDLE_EXTRACT_BASE_DIR'] = Join-Path $testDirectory 'bundle'
     $environment['NETWORKSTATS_DIAGNOSTICS_DIRECTORY'] = Join-Path $testDirectory 'logs'
+    $environment['NETWORKSTATS_REQUIRE_UPDATER'] = '1'
     $block = (($environment.Keys | Sort-Object | ForEach-Object { $_ + '=' + $environment[$_] }) -join "`0") + "`0`0"
     for ($run = 0; $run -le $WarmRuns; $run++) {
         $settings['theme'] = @('Dark', 'Light', 'System')[$run % 3]

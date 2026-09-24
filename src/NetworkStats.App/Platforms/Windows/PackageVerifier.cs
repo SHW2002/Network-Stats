@@ -58,6 +58,7 @@ internal static class PackageVerifier
             await Task.Delay(300);
             report.Add("Navigation: settings opened and returned to timeline");
             await UpdatePageVerifier.VerifyAsync(page, services.GetRequiredService<MonitorEngine>());
+            report.Add($"Updater capability: {UpdatesCapability()}");
             report.Add("Updates: proxy persistence, version check, verified download and install handoff");
             await SpeedTestVerifier.VerifyAsync(page, services.GetRequiredService<MonitorEngine>());
             report.Add("URL speed: configured URL automatically measured and speed rendered on main timeline");
@@ -88,5 +89,12 @@ internal static class PackageVerifier
             // 脚本必须等到真正退出：分别验证普通关闭和托盘的显式退出可绕过最小化设置。
             Native.PostMessage(WinRT.Interop.WindowNative.GetWindowHandle(native), message, 0, 0);
         }
+    }
+
+    private static string UpdatesCapability()
+    {
+#pragma warning disable IL3000
+        return $"{NetworkStats.App.Updates.UpdateServices.CreateInstaller().IsSupported}; entry assembly: {System.Reflection.Assembly.GetEntryAssembly()?.Location}";
+#pragma warning restore IL3000
     }
 }

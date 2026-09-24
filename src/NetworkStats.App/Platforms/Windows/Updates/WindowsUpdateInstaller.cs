@@ -8,8 +8,18 @@ namespace NetworkStats.App.Platforms.Windows.Updates;
 
 internal sealed class WindowsUpdateInstaller : IUpdateInstaller
 {
-#pragma warning disable IL3000 // 空 Location 用来区分单文件发布版和开发构建。
-    public bool IsSupported => Assembly.GetEntryAssembly()?.Location.Length == 0 && RuntimeInformation.ProcessArchitecture == Architecture.X64;
+#pragma warning disable IL3000 // 同时支持内存加载和 IncludeAllContentForSelfExtract 完整解包的单文件包。
+    public bool IsSupported
+    {
+        get
+        {
+            if (RuntimeInformation.ProcessArchitecture != Architecture.X64 || Environment.ProcessPath is not { } executable) return false;
+            var assembly = Assembly.GetEntryAssembly()?.Location;
+            if (assembly is null) return false;
+            return assembly.Length == 0 || !string.Equals(Path.GetDirectoryName(Path.GetFullPath(assembly)),
+                Path.GetDirectoryName(Path.GetFullPath(executable)), StringComparison.OrdinalIgnoreCase);
+        }
+    }
 #pragma warning restore IL3000
     public string Description => IsSupported
         ? "从 GitHub 下载最新版，校验后自动安装并重启；保留配置和历史记录。"
