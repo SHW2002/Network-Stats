@@ -32,8 +32,13 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
     <ProjectReference Include="../NetworkStats.Core/NetworkStats.Core.csproj" />
-    <MauiIcon Include="Resources/AppIcon/appicon.svg" Color="#172B45" />
     <MauiSplashScreen Include="Resources/Splash/splash.svg" Color="#F5F7FB" BaseSize="128,128" />
+  </ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+    <MauiIcon Include="Resources/AppIcon/appicon.svg" ForegroundFile="Resources/AppIcon/appiconfg.svg" />
+  </ItemGroup>
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) != 'android'">
+    <MauiIcon Include="Resources/AppIcon/appicon.svg" ForegroundFile="Resources/AppIcon/appiconfg.svg" Color="#172B45" />
   </ItemGroup>
   <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
     <Content Include="Platforms/Windows/app.ico" Link="app.ico" CopyToOutputDirectory="PreserveNewest" />
