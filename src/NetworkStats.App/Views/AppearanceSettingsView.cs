@@ -24,7 +24,7 @@ internal sealed class AppearanceSettingsView : ContentView
         } };
 #if WINDOWS
         var row = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)], ColumnSpacing = 12 };
-        row.Add(Ui.Text("关闭时改为最小化", 13, bold: true));
+        row.Add(Ui.Text("关闭时改为缩放到托盘", 13, bold: true));
         row.Add(_minimize, 1);
         body.Add(row);
         body.Add(Ui.Text("点击窗口关闭按钮后继续探测，并最小化到托盘；需要退出时，使用托盘右键菜单的“退出”。", 11, Ui.Muted));
