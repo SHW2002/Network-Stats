@@ -47,7 +47,7 @@ jobs:
 
           for rid in iossimulator-arm64 iossimulator-x64; do
             output="$RUNNER_TEMP/$rid"
-            dotnet publish "$PROJECT" \
+            dotnet build "$PROJECT" \
               -p:NetworkStatsTargetFramework="$FRAMEWORK_IOS" \
               -f "$FRAMEWORK_IOS" \
               -c Release \
