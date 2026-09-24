@@ -88,10 +88,10 @@ public sealed class MonitorEngine(SettingsStore settings, HistoryStore history, 
         ArgumentOutOfRangeException.ThrowIfLessThan(minutes, 1);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(minutes, 1440);
         var now = DateTimeOffset.UtcNow;
-        var start = DateTimeOffset.FromUnixTimeSeconds((now.ToUnixTimeSeconds() / 60 - minutes + 1) * 60);
         var current = Settings;
-        return new(now, start, minutes, current, Status, IsActive,
-            history.Query(start, now), HistoryWarning);
+        var window = history.LatestWindow(current, minutes, now);
+        return new(now, window.Start, minutes, current, Status, IsActive,
+            window.Samples, HistoryWarning, window.End);
     }
 
     private async Task RunAsync(CancellationToken cancellationToken)
@@ -108,7 +108,8 @@ public sealed class MonitorEngine(SettingsStore settings, HistoryStore history, 
                 var tasks = current.GetRoutes().SelectMany(route => current.Sites.Select(site => (site, route)));
                 await Parallel.ForEachAsync(tasks,
                     new ParallelOptions { MaxDegreeOfParallelism = current.MaxConcurrency, CancellationToken = cancellationToken },
-                    async (task, token) => results.Add(await probe.CheckAsync(task.site, task.route, current, token)));
+                    async (task, token) => results.Add((await probe.CheckAsync(task.site, task.route, current, token))
+                        with { RoundStartedAt = started }));
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
             catch (Exception exception)
@@ -147,4 +148,5 @@ public sealed class MonitorEngine(SettingsStore settings, HistoryStore history, 
 }
 
 public sealed record MonitorSnapshot(DateTimeOffset Now, DateTimeOffset WindowStart, int Minutes,
-    MonitorSettings Settings, WorkerStatus Worker, bool Active, ProbeResult[] Samples, string? Warning);
+    MonitorSettings Settings, WorkerStatus Worker, bool Active, ProbeResult[] Samples, string? Warning,
+    DateTimeOffset? WindowEnd = null);

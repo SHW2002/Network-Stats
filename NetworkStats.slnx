@@ -5,6 +5,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/NetworkStats.Tests/NetworkStats.Tests.csproj" />
-    <Project Path="tests/NetworkStats.BrowserTests/NetworkStats.BrowserTests.csproj" />
+    <Project Path="tests/NetworkStats.DesktopTests/NetworkStats.DesktopTests.csproj" />
   </Folder>
 </Solution>

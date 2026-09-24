@@ -14,8 +14,9 @@ internal static class PreferenceTests
         Check.That(store.Current.Theme == ThemeMode.System && !store.Current.MinimizeOnClose && !store.Current.LaunchOnStartup,
             "Legacy preferences did not use system theme and normal close defaults");
         Check.That(store.Current.Sites is [{ Name: "Existing" }], "Loading preferences replaced existing site configuration");
-        Check.That(new MonitorSettings().Sites.Any(site => site.Name == "ChatGPT" && site.Url == "https://chatgpt.com/"),
-            "ChatGPT is missing from the default URL list");
+        Check.That(new MonitorSettings().Sites.Select(site => site.Url).SequenceEqual(new[]
+            { "https://baidu.com/", "https://google.com/", "https://github.com/", "https://pixiv.net/" }),
+            "Default sites must contain exactly the four supported targets");
         foreach (var theme in Enum.GetValues<ThemeMode>())
         {
             await store.SaveAsync(store.Current with { Theme = theme, MinimizeOnClose = true, LaunchOnStartup = true }, default);

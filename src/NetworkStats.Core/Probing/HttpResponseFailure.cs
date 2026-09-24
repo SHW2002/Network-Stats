@@ -2,9 +2,9 @@ using System.Net;
 
 namespace NetworkStats.Probing;
 
-public static class HttpResponseFailure
+internal static class HttpResponseFailure
 {
-    public static bool RequiresBrowser(HttpResponseMessage response) =>
+    private static bool RequiresBrowser(HttpResponseMessage response) =>
         response.Headers.TryGetValues("cf-mitigated", out var values) &&
         values.Any(value => string.Equals(value.Trim(), "challenge", StringComparison.OrdinalIgnoreCase));
 

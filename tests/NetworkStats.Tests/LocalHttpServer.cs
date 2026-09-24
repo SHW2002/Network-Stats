@@ -20,6 +20,7 @@ internal sealed class LocalHttpServer : IAsyncDisposable
     public string? LastAcceptEncoding { get; private set; }
     public int MaximumConcurrency => _maximum;
     public int Requests => _requests;
+    public TaskCompletionSource ReleaseResponse { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private LocalHttpServer()
     {
@@ -42,6 +43,10 @@ internal sealed class LocalHttpServer : IAsyncDisposable
                 if (await HttpFailureTests.HandleAsync(context)) return;
                 switch (context.Request.Path.Value)
                 {
+                    case "/controlled":
+                        await ReleaseResponse.Task.WaitAsync(context.RequestAborted);
+                        context.Response.StatusCode = 204;
+                        break;
                     case "/slow":
                         await Task.Delay(350, context.RequestAborted);
                         context.Response.StatusCode = 204;

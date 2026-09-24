@@ -10,9 +10,11 @@ public sealed record ProbeResult(
     long LatencyMs,
     int? HttpStatus,
     string? Error,
-    UrlTransfer? Transfer = null)
+    UrlTransfer? Transfer = null,
+    DateTimeOffset? RoundStartedAt = null)
 {
-    public long Minute => CheckedAt.ToUnixTimeSeconds() / 60;
+    // 同轮请求可能排队跨分钟；按整轮起始分钟归档，保留各请求真实的 CheckedAt。
+    public long Minute => (RoundStartedAt ?? CheckedAt).ToUnixTimeSeconds() / 60;
 }
 
 public sealed record WorkerStatus(

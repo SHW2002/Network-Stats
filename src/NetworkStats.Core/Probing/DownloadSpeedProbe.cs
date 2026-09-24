@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
@@ -7,10 +6,8 @@ using NetworkStats.Models;
 
 namespace NetworkStats.Probing;
 
-public sealed class DownloadSpeedProbe(IBrowserDownloadProbe? browser = null)
+public sealed class DownloadSpeedProbe
 {
-    private readonly ConcurrentDictionary<(string Url, string? Proxy), byte> _browserUrls = new();
-
     public async Task<DownloadSpeedResult> MeasureAsync(DownloadSpeedRequest options, RouteDefinition route,
         IProgress<DownloadProgress>? progress = null, CancellationToken cancellationToken = default)
     {
@@ -21,35 +18,6 @@ public sealed class DownloadSpeedProbe(IBrowserDownloadProbe? browser = null)
         if (options.ByteLimit is < 1 or > 100_000_000)
             throw new ArgumentOutOfRangeException(nameof(options), "下载上限必须在 1 至 100,000,000 字节之间。");
         cancellationToken.ThrowIfCancellationRequested();
-
-        var key = (options.Url, route.Address);
-        if (browser is not null && _browserUrls.ContainsKey(key))
-            return await browser.MeasureAsync(options, route, progress, cancellationToken).ConfigureAwait(false);
-
-        var result = await MeasureHttpAsync(options, route, uri, progress, cancellationToken).ConfigureAwait(false);
-        if (browser is null || !result.BrowserVerificationRequired) return result;
-        var remaining = options.TimeLimit - result.Download.TotalTime;
-        if (remaining <= TimeSpan.Zero) return result;
-        var offset = result.Download.TotalTime;
-        var measured = await browser.MeasureAsync(options with { TimeLimit = remaining }, route,
-            progress is null ? null : new OffsetProgress(progress, offset), cancellationToken).ConfigureAwait(false);
-        if (measured.Succeeded) _browserUrls.TryAdd(key, 0);
-        return measured with
-        {
-            Download = measured.Download with { TotalTime = measured.Download.TotalTime + offset },
-            HttpStatus = measured.HttpStatus ?? result.HttpStatus,
-            UsedBrowser = true
-        };
-    }
-
-    private sealed class OffsetProgress(IProgress<DownloadProgress> inner, TimeSpan offset) : IProgress<DownloadProgress>
-    {
-        public void Report(DownloadProgress value) => inner.Report(value with { TotalTime = value.TotalTime + offset });
-    }
-
-    private static async Task<DownloadSpeedResult> MeasureHttpAsync(DownloadSpeedRequest options, RouteDefinition route,
-        Uri uri, IProgress<DownloadProgress>? progress, CancellationToken cancellationToken)
-    {
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(options.TimeLimit);
@@ -74,7 +42,6 @@ public sealed class DownloadSpeedProbe(IBrowserDownloadProbe? browser = null)
         var transfer = new Stopwatch();
         long received = 0;
         int? status = null;
-        var requiresBrowser = false;
         var finalUrl = options.Url;
         var lastProgress = TimeSpan.Zero;
         var buffer = ArrayPool<byte>.Shared.Rent(64 * 1024);
@@ -84,7 +51,6 @@ public sealed class DownloadSpeedProbe(IBrowserDownloadProbe? browser = null)
                 .ConfigureAwait(false);
             status = (int)response.StatusCode;
             finalUrl = response.RequestMessage?.RequestUri?.AbsoluteUri ?? options.Url;
-            requiresBrowser = HttpResponseFailure.RequiresBrowser(response);
             if (HttpResponseFailure.Describe(response) is { } failure)
                 return Finish(DownloadCompletion.Failed, failure);
             transfer.Start();
@@ -125,7 +91,7 @@ public sealed class DownloadSpeedProbe(IBrowserDownloadProbe? browser = null)
             total.Stop();
             var download = Snapshot();
             progress?.Report(download);
-            return new(finalUrl, route.Name, download, completion, status, error, requiresBrowser);
+            return new(finalUrl, route.Name, download, completion, status, error);
         }
     }
 }

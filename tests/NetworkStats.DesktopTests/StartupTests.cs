@@ -2,7 +2,7 @@ using Microsoft.Win32;
 using NetworkStats.App.Platforms.Windows;
 using System.Runtime.Versioning;
 
-namespace NetworkStats.BrowserTests;
+namespace NetworkStats.DesktopTests;
 
 [SupportedOSPlatform("windows")]
 internal static class StartupTests

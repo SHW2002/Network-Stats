@@ -30,7 +30,7 @@ internal static class ProbePresentation
             $" · 采样于 {sample.CheckedAt.ToLocalTime():HH:mm:ss}";
         if (sample.Transfer is { } transfer)
         {
-            if (transfer.UsedBrowser) text += "\n采样方式：后台浏览器；只计算目标正文的实际传输字节，不计入脚本和图片。";
+            if (transfer.UsedBrowser) text += "\n旧版浏览器采样记录（该功能已移除）；只计算目标正文的实际传输字节。";
             text += $"\n响应体下载速度：{Speed(sample)} · 已读取 {transfer.BytesReceived / 1000.0:N1} KB";
             if (sample.Status != ProbeStatus.Unreachable && transfer.MegabitsPerSecond is not null)
                 text += $"（{transfer.MegabitsPerSecond:N2} Mbps）";

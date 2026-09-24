@@ -41,10 +41,10 @@ internal static class HttpFailureTests
             var result = await probe.CheckAsync(new("restricted", server.Address + path), route, settings, default);
             Check.That(result.Status == ProbeStatus.Unreachable && result.HttpStatus == code &&
                 result.Error?.Contains(hint) == true, $"Missing rejection diagnosis for {path}");
-            Check.That(result.Transfer is { BytesReceived: 0, Completion: DownloadCompletion.Failed, MegabytesPerSecond: null },
+            Check.That(result.Transfer is { BytesReceived: 0, Completion: DownloadCompletion.Failed, MegabytesPerSecond: null, UsedBrowser: false },
                 $"Verification/error page was measured as target download speed for {path}");
             if (code == 403) Check.That(result.Error!.Contains("不表示网络不通"), "HTTP rejection was confused with network failure");
         }
-        Check.That(server.Requests == cases.Length, "Restricted requests were retried or replaced by another URL");
+        Check.That(server.Requests == cases.Length, "Restricted requests were retried using another URL or client");
     }
 }

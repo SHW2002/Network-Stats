@@ -35,7 +35,7 @@ internal sealed class SiteSummaryView : VerticalStackLayout
             $"{(sample.Transfer is null ? "响应头" : "总耗时")} {sample.LatencyMs:N0} ms";
         _quality.IsVisible = sample is { Transfer.UsedBrowser: true } or { Status: not ProbeStatus.Unreachable, Transfer.ShortSample: true };
         _quality.Text = sample is { Transfer.UsedBrowser: true }
-            ? sample.Transfer.ShortSample ? "浏览器 · 样本较小" : "后台浏览器探测"
+            ? "旧版浏览器记录"
             : _quality.IsVisible ? "样本较小 · 仅供参考" : "";
     }
 }

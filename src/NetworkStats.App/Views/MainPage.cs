@@ -14,6 +14,7 @@ public sealed class MainPage : ContentPage
     private readonly Label _warning = Ui.Text("", 12, Ui.Red);
     private readonly Label _detail = Ui.Text("点击任意色块，查看该 URL 的下载速度、访问总耗时、响应等待和下载量。", 12, Ui.Muted);
     private readonly Label _policy = Ui.Text("", 11, Ui.Muted);
+    private readonly Label _timelineStatus = Ui.Text("首次探测完成后显示时间图", 11, Ui.Muted);
     private readonly Button _probe = Ui.Button("立即测速", true);
     private readonly Button _pause = Ui.Button("暂停");
     private readonly MetricCard _available = new("最新可访问", "—", "全部网站 × 全部线路");
@@ -33,6 +34,8 @@ public sealed class MainPage : ContentPage
     internal bool HasDrawnCurrentTheme => _routeViews.Count > 0 && _routeViews.All(route => route.HasDrawnCurrentTheme);
     internal bool HasUrlSpeedReadings => _routeViews.Any(route => route.HasSpeedReadings);
     internal bool HasShortSampleHints => _routeViews.Any(route => route.HasShortSampleHints);
+    internal bool TimelineVisible => _routeList.IsVisible;
+    internal DateTimeOffset? DisplayedMinute { get; private set; }
     internal string? GetSpeedText(string siteId, string routeId) =>
         _routeViews.Select(route => route.GetSpeedText(siteId, routeId)).FirstOrDefault(text => text is not null);
 
@@ -79,7 +82,7 @@ public sealed class MainPage : ContentPage
         };
         var chartHeader = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)] };
         chartHeader.Add(new VerticalStackLayout { Spacing = 4,
-            Children = { Ui.Text("可访问性时间线", 19, bold: true), Ui.Text("每格 1 分钟 · 从左至右", 11, Ui.Muted) } });
+            Children = { Ui.Text("可访问性时间线", 19, bold: true), _timelineStatus } });
         chartHeader.Add(range, 1);
         var legend = new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap };
         foreach (var (text, color) in new[] { ("正常", Ui.Green), ("较慢", Ui.Yellow), ("不可访问", Ui.Red), ("无数据", Ui.Empty) })
@@ -138,6 +141,11 @@ public sealed class MainPage : ContentPage
     private void Refresh()
     {
         var snapshot = _monitor.Snapshot(_minutes);
+        DisplayedMinute = snapshot.WindowEnd;
+        _routeList.IsVisible = snapshot.WindowEnd is not null;
+        _timelineStatus.Text = snapshot.WindowEnd is { } end
+            ? $"每格 1 分钟 · 截至 {end.ToLocalTime():MM-dd HH:mm} · 探测完成后更新"
+            : snapshot.Active ? "正在探测，完成后显示时间图…" : "暂无探测结果，开始探测后显示时间图";
         var routes = snapshot.Settings.GetRoutes();
         var configuration = string.Join('|', routes.Select(route => $"{route.Id}:{route.Name}")) +
             string.Join('|', snapshot.Settings.Sites.Select(site => $"{site.Id}:{site.Name}"));

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using NetworkStats.Models;
+using NetworkStats.Monitoring;
 
 namespace NetworkStats.Storage;
 
@@ -50,8 +51,6 @@ public sealed class HistoryStore(string dataDirectory)
     public async Task RecordAsync(IEnumerable<ProbeResult> samples, int retentionHours, CancellationToken cancellationToken)
     {
         var batch = samples.ToArray();
-        foreach (var sample in batch)
-            Put(sample);
         await _fileGate.WaitAsync(cancellationToken);
         try
         {
@@ -77,7 +76,19 @@ public sealed class HistoryStore(string dataDirectory)
         {
             Warning = $"历史记录暂时无法保存：{exception.Message}";
         }
-        finally { _fileGate.Release(); }
+        finally
+        {
+            // 读者只会看到完整的一批；先持久化，再一次性公布，避免整轮中途闪现空格。
+            lock (_gate)
+                foreach (var sample in batch.Where(sample => sample.CheckedAt >= DateTimeOffset.UtcNow.AddHours(-retentionHours)))
+                    Put(sample);
+            _fileGate.Release();
+        }
+    }
+
+    public TimelineWindow LatestWindow(MonitorSettings settings, int minutes, DateTimeOffset now)
+    {
+        lock (_gate) return TimelineWindow.Create(_samples.Values, settings, minutes, now);
     }
 
     private void Put(ProbeResult sample)

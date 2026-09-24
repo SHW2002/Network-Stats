@@ -18,8 +18,7 @@ public sealed record MonitorSettings
         new("Baidu", "https://baidu.com/"),
         new("Google", "https://google.com/"),
         new("GitHub", "https://github.com/"),
-        new("Pixiv", "https://pixiv.net/"),
-        new("ChatGPT", "https://chatgpt.com/")
+        new("Pixiv", "https://pixiv.net/")
     ];
     public ProxyDefinition[] Proxies { get; init; } = [];
 

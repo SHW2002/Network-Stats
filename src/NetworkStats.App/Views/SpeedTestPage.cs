@@ -145,7 +145,6 @@ internal sealed class SpeedTestPage : ContentPage
             _quality.IsVisible = result.Succeeded && result.ShortSample;
             if (!result.Succeeded) _speed.Text = "— KB/s";
             _detail.Text = $"线路：{result.RouteName}\n地址：{result.Url}\n" +
-                (result.UsedBrowser ? "采样方式：后台浏览器，只计目标正文的实际传输字节；总耗时包含浏览器准备。\n" : "") +
                 (result.Succeeded ? "结果为该 URL 的响应体下载速度，不代表整条线路的最大带宽。" : result.Error);
         }
         catch (OperationCanceledException) { _status.Text = "已取消测速"; _speed.Text = "— KB/s"; _quality.IsVisible = false; }
