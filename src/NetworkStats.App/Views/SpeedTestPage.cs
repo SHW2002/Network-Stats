@@ -49,19 +49,19 @@ internal sealed class SpeedTestPage : ContentPage
         {
             Content = new VerticalStackLayout
             {
-                Spacing = 18, Padding = 22, MaximumWidthRequest = 850,
+                Spacing = Ui.Space(18), Padding = Ui.Space(22), MaximumWidthRequest = 850,
                 Children =
                 {
                     Ui.Text("该 URL 的下载速度与访问耗时", 24, bold: true),
                     _limits,
-                    Ui.Card(new VerticalStackLayout { Spacing = 12, Children =
+                    Ui.Card(new VerticalStackLayout { Spacing = Ui.Space(12), Children =
                     {
                         Ui.Text("测速线路", 13, bold: true), _route,
                         Ui.Text("已配置的目标 URL", 13, bold: true), _site, _url,
                         Ui.Text("直接访问所选网站设置中的 URL。主界面会自动按周期测量，也可以在这里单独复测。", 12, Ui.Muted),
                         new HorizontalStackLayout { Spacing = 12, Children = { _start, _cancel } }
                     } }),
-                    Ui.Card(new VerticalStackLayout { Spacing = 14, Children =
+                    Ui.Card(new VerticalStackLayout { Spacing = Ui.Space(14), Children =
                         { _status, Ui.Text("响应体下载速度", 13, bold: true), _speed, _bytes, _timings, _quality, _progress, _detail } }),
                     Ui.Text("下载速度 = 响应体字节数 / 响应体读取时间，从收到响应头计时到读取结束。访问总耗时另含连接和响应等待。8 Mbps = 1 MB/s。", 12, Ui.Muted),
                     Ui.Text("只测量这个 URL 返回的内容，不加载网页引用的图片、脚本或视频。内容只用于计数，不保存到磁盘。", 12, Ui.Muted),

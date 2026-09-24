@@ -35,7 +35,7 @@ internal sealed class RouteTimelineView : ContentView
             var summary = new SiteSummaryView(site);
             labelColumn.Add(summary);
             var drawing = new TimelineDrawable();
-            var view = new GraphicsView { Drawable = drawing, HeightRequest = SiteSummaryView.RowHeight };
+            var view = new GraphicsView { Drawable = drawing, HeightRequest = Ui.SiteRowHeight };
             view.StartInteraction += (_, args) =>
             {
                 if (args.Touches.Length == 0 || view.Width <= 0) return;
@@ -65,7 +65,7 @@ internal sealed class RouteTimelineView : ContentView
         table.Add(_scroll, 1);
         var body = new VerticalStackLayout
         {
-            Spacing = 14,
+            Spacing = Ui.Space(14),
             Children =
             {
                 Ui.Text(route.Name, 16, bold: true),

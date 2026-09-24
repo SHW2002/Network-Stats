@@ -16,7 +16,7 @@ internal sealed class AppearanceSettingsView : ContentView
         MinimizeOnClose = settings.MinimizeOnClose;
         Ui.ThemePicker(_theme);
         Ui.Bind(_minimize, Switch.OnColorProperty, Ui.PrimaryButton);
-        var body = new VerticalStackLayout { Spacing = 10, Children =
+        var body = new VerticalStackLayout { Spacing = Ui.Space(10), Children =
         {
             Ui.Text("外观与窗口", 17, bold: true),
             Ui.Text("深色模式", 13, bold: true), _theme,

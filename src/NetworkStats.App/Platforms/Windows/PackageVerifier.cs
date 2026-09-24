@@ -46,11 +46,14 @@ internal static class PackageVerifier
             Native.DestroyIcon(icon);
             report.Add("MAUI: window loaded, native templates applied, timeline drawing completed");
             report.Add("Tray: window integration initialized; bundled icon loaded");
+            report.Add($"Window: {window.Width:F0} x {window.Height:F0} DIP; content {page.Width:F0} x {page.Height:F0} DIP");
+            await WindowCapture.SaveAsync(native, "main");
 
             await page.Navigation.PushAsync(new SettingsPage(services.GetRequiredService<MonitorEngine>()), false);
             await Task.Delay(300);
             if (!page.Navigation.NavigationStack.Last().IsLoaded)
                 throw new InvalidOperationException("Settings page did not load.");
+            await WindowCapture.SaveAsync(native, "settings");
             await page.Navigation.PopAsync(false);
             await Task.Delay(300);
             report.Add("Navigation: settings opened and returned to timeline");

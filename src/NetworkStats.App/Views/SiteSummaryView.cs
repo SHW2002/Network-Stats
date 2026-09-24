@@ -4,7 +4,6 @@ namespace NetworkStats.App.Views;
 
 internal sealed class SiteSummaryView : VerticalStackLayout
 {
-    public const int RowHeight = 80;
     private readonly Label _speed = Ui.Text("等待 URL 测速", 12, Ui.Accent, true);
     private readonly Label _elapsed = Ui.Text("首次采样中…", 11, Ui.Muted);
     private readonly Label _quality = Ui.Text("", 10, Ui.Muted);
@@ -15,11 +14,14 @@ internal sealed class SiteSummaryView : VerticalStackLayout
 
     public SiteSummaryView(SiteDefinition site)
     {
-        HeightRequest = RowHeight;
+        HeightRequest = Ui.SiteRowHeight;
         VerticalOptions = LayoutOptions.Center;
         Spacing = 1;
-        Padding = new Thickness(0, 5, 4, 0);
-        Children.Add(Ui.Text(site.Name, 14, bold: true));
+        Padding = new Thickness(0, Ui.IsDesktop ? 2 : 5, 4, 0);
+        var name = Ui.Text(site.Name, 14, bold: true);
+        name.LineBreakMode = LineBreakMode.TailTruncation;
+        name.MaxLines = 1;
+        Children.Add(name);
         Children.Add(_speed);
         Children.Add(_elapsed);
         Children.Add(_quality);

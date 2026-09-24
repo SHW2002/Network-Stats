@@ -26,7 +26,7 @@ internal sealed class StartupSettingsView : ContentView
             try { await StartupServices.OpenSystemSettingsAsync(); }
             catch (Exception exception) { _detail.Text = "无法打开系统设置：" + exception.Message; }
         };
-        Content = Ui.Card(new VerticalStackLayout { Spacing = 10, Children =
+        Content = Ui.Card(new VerticalStackLayout { Spacing = Ui.Space(10), Children =
             { Ui.Text("启动行为", 17, bold: true), row, _detail, settings } });
 #if !WINDOWS && !MACCATALYST
         IsVisible = false;

@@ -21,11 +21,11 @@ public sealed class MainPage : ContentPage
     private readonly MetricCard _latency = new("平均访问耗时", "—", "最新成功 URL 请求的总耗时");
     private readonly MetricCard _routes = new("探测线路", "1", "直接连接始终保留");
     private readonly MetricCard _rate = new("窗口可用率", "—", "仅统计有数据的色块");
-    private readonly Grid _metrics = new() { ColumnSpacing = 12, RowSpacing = 12 };
-    private readonly Grid _controls = new() { ColumnSpacing = 16, RowSpacing = 10 };
+    private readonly Grid _metrics = new() { ColumnSpacing = Ui.Space(12), RowSpacing = Ui.Space(12) };
+    private readonly Grid _controls = new() { ColumnSpacing = Ui.Space(16), RowSpacing = Ui.Space(10) };
     private readonly VerticalStackLayout _statusBlock;
     private readonly HorizontalStackLayout _buttons;
-    private readonly VerticalStackLayout _routeList = new() { Spacing = 14 };
+    private readonly VerticalStackLayout _routeList = new() { Spacing = Ui.Space(14) };
     private readonly List<RouteTimelineView> _routeViews = [];
     private readonly IDispatcherTimer _timer;
     private string? _configuration;
@@ -61,7 +61,7 @@ public sealed class MainPage : ContentPage
         var header = new Grid { ColumnDefinitions = [new(GridLength.Star), new(GridLength.Auto)], ColumnSpacing = 12 };
         header.Add(new VerticalStackLayout
         {
-            Spacing = 7,
+            Spacing = Ui.Space(7),
             Children = { Ui.Text($"NETWORK STATS · v{AppInfo.Current.VersionString}", 11, Ui.Accent, true), Ui.Text("网络观测站", 28, bold: true),
                 Ui.Text($"{PlatformName()} · 每个 URL 的下载速度与访问总耗时", 12, Ui.Muted) }
         });
@@ -92,11 +92,11 @@ public sealed class MainPage : ContentPage
             legend.Add(new HorizontalStackLayout { Spacing = 6, Margin = new Thickness(0, 0, 18, 4),
                 Children = { dot, Ui.Text(text, 11, Ui.Muted) } });
         }
-        _statusBlock = new VerticalStackLayout { Spacing = 5, Children = { _status, _schedule } };
-        _buttons = new HorizontalStackLayout { Spacing = 10, Children = { _probe, _pause, speedTest } };
+        _statusBlock = new VerticalStackLayout { Spacing = Ui.Space(5), Children = { _status, _schedule } };
+        _buttons = new HorizontalStackLayout { Spacing = Ui.Space(10), Children = { _probe, _pause, speedTest } };
         var content = new VerticalStackLayout
         {
-            Spacing = 18, Padding = new Thickness(24, 20, 24, 30), MaximumWidthRequest = 1400,
+            Spacing = Ui.Space(18), Padding = Ui.Space(new Thickness(24, 20, 24, 30)), MaximumWidthRequest = 1400,
             HorizontalOptions = LayoutOptions.Fill,
             Children = { header, _controls,
                 _warning, chartHeader, legend, _routeList, _metrics, Ui.Card(_detail, 16), _policy,

@@ -11,7 +11,7 @@ internal sealed class MetricCard : ContentView
         _note = Ui.Text(note, 11, Ui.Muted);
         Content = Ui.Card(new VerticalStackLayout
         {
-            Spacing = 7,
+            Spacing = Ui.Space(7),
             Children = { Ui.Text(title, 12, Ui.Muted), _value, _note }
         }, 18);
     }

@@ -28,6 +28,8 @@ internal static class SpeedTestVerifier
             var legacy = sample with { Transfer = sample.Transfer! with { TransferMilliseconds = null } };
             if (ProbePresentation.Speed(legacy) != "未记录下载速度")
                 throw new InvalidOperationException("Legacy total-time average was displayed as download speed.");
+            var native = (Microsoft.UI.Xaml.Window)mainPage.Window.Handler!.PlatformView!;
+            await WindowCapture.SaveAsync(native, "main-speed");
             var page = await mainPage.OpenSpeedTestAsync();
             while (!page.IsLoaded || page.Width <= 0) await Task.Delay(50, timeout.Token);
             await page.RunAsync();
@@ -38,6 +40,7 @@ internal static class SpeedTestVerifier
             if (page.DisplayedSpeed != ProbePresentation.Rate(page.LastResult.Download.MegabytesPerSecond) ||
                 !page.HasTimingBreakdown || !page.HasShortSampleHint)
                 throw new InvalidOperationException("Single-site page did not display body speed, timing breakdown and sample hint.");
+            await WindowCapture.SaveAsync(native, "speed");
             await mainPage.Navigation.PopAsync(false);
         }
         finally { await monitor.SaveSettingsAsync(original); }

@@ -23,15 +23,19 @@ public sealed class App(MainPage mainPage, MonitorEngine monitor) : Application
         var window = new Window(navigation)
         {
             Title = "Network Stats · 网络观测站",
-            Width = 1160,
-            Height = 820,
+            Width = 960,
+            Height = 680,
             MinimumWidth = 380,
-            MinimumHeight = 560
+            MinimumHeight = 480
         };
         window.Created += async (_, _) =>
         {
 #if WINDOWS
-            if (window.Handler?.PlatformView is Microsoft.UI.Xaml.Window native) Platforms.Windows.WindowTheme.Apply(native);
+            if (window.Handler?.PlatformView is Microsoft.UI.Xaml.Window native)
+            {
+                Platforms.Windows.WindowTheme.Apply(native);
+                Platforms.Windows.WindowPlacement.FitToWorkArea(native);
+            }
 #endif
             await ResumeAsync();
         };

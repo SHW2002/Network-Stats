@@ -43,7 +43,7 @@ internal sealed class SettingsPage : ContentPage
         var addProxy = Ui.Button("+ 添加代理");
         addProxy.Clicked += (_, _) => AddProxy(new($"代理 {_proxies.Children.Count + 1}", "http", "127.0.0.1", 7890));
         _save.Clicked += async (_, _) => await SaveAsync();
-        var parameters = new VerticalStackLayout { Spacing = 12 };
+        var parameters = new VerticalStackLayout { Spacing = Ui.Space(12) };
         parameters.Add(Field("探测间隔 / 秒", "10–3600，默认 60；图表始终每分钟一格", _interval));
         parameters.Add(Field("请求超时 / 秒", "1–60，超时显示红色", _timeout));
         parameters.Add(Field("黄色阈值 / 毫秒", "成功请求超过此耗时显示黄色，需小于超时", _threshold));
@@ -52,7 +52,7 @@ internal sealed class SettingsPage : ContentPage
         {
             Content = new VerticalStackLayout
             {
-                Spacing = 18, Padding = 22, MaximumWidthRequest = 850,
+                Spacing = Ui.Space(18), Padding = Ui.Space(22), MaximumWidthRequest = 850,
                 Children =
                 {
                     Ui.Text("配置仅对这台设备生效", 21, bold: true),
