@@ -8,7 +8,7 @@
 
 ## 使用引导
 
-1. 在 [GitHub Releases](https://github.com/SHW2002/Network-Stats/releases/latest) 下载 Windows x64 版 **Network-Stats.exe**，双击运行，无需额外安装运行库，请保留文件名。
+1. 在 [GitHub Releases](https://github.com/SHW2002/Network-Stats/releases/latest) 下载对应平台包：Windows x64 使用 **Network-Stats.exe**，Android arm64 使用 APK，macOS 按 Apple Silicon / Intel 选择 ZIP；iOS 当前提供 Xcode Simulator 包。
 2. 打开 **设置**，添加要监测的网站和代理地址，保存后自动开始探测；直连始终保留，本机代理通常填写 `127.0.0.1` 和代理软件提供的端口。
 3. 查看时间线：绿色表示正常、黄色表示较慢、红色表示不可访问，空格表示没有数据；可切换最近 1、3、6、24 小时，点击色块查看详情。
 4. 使用 **立即测速** 刷新整组结果，或进入 **单项测速** 复测一个网站；在 **设置 → 软件更新** 中检查并安装新版本，也可单独配置更新代理。
@@ -22,7 +22,7 @@ Windows 最小化后会在托盘继续监测，双击托盘图标恢复，右键
 - **.NET 10 + .NET MAUI**：原生界面，支持 Windows、Android、iOS 和 macOS（Mac Catalyst）工程。
 - **GraphicsView**：绘制每分钟网络状态时间图；Windows 界面基于 WinUI 3。
 - **NetworkStats.Core**：HTTP 探测、代理、调度、历史存储与更新逻辑；**NetworkStats.App**：界面及平台集成。
-- 目前提供 Windows x64 单文件成品；其他平台需安装对应工作负载，iOS / macOS 构建需要 Mac。
+- 当前 Release 提供 Windows x64、Android arm64、macOS arm64 / x64 及 iOS 模拟器 arm64 / x64；iOS 真机包需要 Apple 开发者签名，macOS 包采用 ad-hoc 签名且未公证。
 
 安装 .NET 10 SDK 后，在 Windows 上运行：
 
