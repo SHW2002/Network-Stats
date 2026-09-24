@@ -12,6 +12,9 @@ public static class SettingsValidator
     public static MonitorSettings Normalize(MonitorSettings settings)
     {
         var errors = new List<string>();
+        string? updateProxy = null;
+        try { updateProxy = Updates.UpdateProxy.Normalize(settings.UpdateProxy); }
+        catch (ArgumentException exception) { errors.Add(exception.Message); }
         if (!Enum.IsDefined(settings.Theme)) errors.Add("主题必须为跟随系统、浅色或深色");
         CheckRange(settings.IntervalSeconds, 10, 3600, "探测间隔（秒）", errors);
         CheckRange(settings.TimeoutSeconds, 1, 60, "超时（秒）", errors);
@@ -69,7 +72,7 @@ public static class SettingsValidator
             errors.Add("代理地址不能重复");
         if (errors.Count > 0)
             throw new SettingsValidationException(errors.ToArray());
-        return settings with { Sites = sites.ToArray(), Proxies = proxies.ToArray() };
+        return settings with { Sites = sites.ToArray(), Proxies = proxies.ToArray(), UpdateProxy = updateProxy };
     }
 
     private static void CheckRange(int value, int min, int max, string label, List<string> errors)

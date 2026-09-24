@@ -14,8 +14,8 @@ internal static class PackageVerifier
     private static string? GetReportPath()
     {
         var arguments = Environment.GetCommandLineArgs();
-        return arguments.Length == 3 && arguments[1] == "--verify-package"
-            ? Path.GetFullPath(arguments[2]) : null;
+        var index = Array.IndexOf(arguments, "--verify-package");
+        return index >= 0 && index + 1 < arguments.Length ? Path.GetFullPath(arguments[index + 1]) : null;
     }
 
     public static async Task VerifyAsync(IServiceProvider services)
@@ -57,6 +57,8 @@ internal static class PackageVerifier
             await page.Navigation.PopAsync(false);
             await Task.Delay(300);
             report.Add("Navigation: settings opened and returned to timeline");
+            await UpdatePageVerifier.VerifyAsync(page, services.GetRequiredService<MonitorEngine>());
+            report.Add("Updates: proxy persistence, version check, verified download and install handoff");
             await SpeedTestVerifier.VerifyAsync(page, services.GetRequiredService<MonitorEngine>());
             report.Add("URL speed: configured URL automatically measured and speed rendered on main timeline");
             report.Add("URL speed: single-site page measured the same configured path and query");

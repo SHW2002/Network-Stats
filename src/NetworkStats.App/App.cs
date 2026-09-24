@@ -10,6 +10,13 @@ public sealed class App(MainPage mainPage, MonitorEngine monitor) : Application
     private Platforms.Windows.TrayIcon? _tray;
     internal bool TrayInitialized => _tray is not null;
     internal void MinimizeForStartup() => _tray?.Minimize();
+    internal async Task ExitForUpdateAsync()
+    {
+        mainPage.CancelSpeedTest();
+        await monitor.StopAsync();
+        if (_tray is not null) _tray.Exit();
+        else if (Windows.Single().Handler?.PlatformView is Microsoft.UI.Xaml.Window native) native.Close();
+    }
 #endif
 
     protected override Window CreateWindow(IActivationState? activationState)

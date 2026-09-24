@@ -91,7 +91,7 @@ internal sealed class TrayIcon : IDisposable
         finally { Native.DestroyMenu(menu); }
     }
 
-    private void Exit()
+    internal void Exit()
     {
         _exiting = true;
         _window.Close();

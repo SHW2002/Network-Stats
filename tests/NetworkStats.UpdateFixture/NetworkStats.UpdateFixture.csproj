@@ -2,13 +2,14 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Network-Stats</AssemblyName>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/NetworkStats.Core/NetworkStats.Core.csproj" />
-    <Compile Include="../../src/NetworkStats.App/Platforms/Windows/WindowsStartupService.cs" Link="Startup/WindowsStartupService.cs" />
-    <Compile Include="../../src/NetworkStats.App/Startup/IStartupService.cs" Link="Startup/IStartupService.cs" />
     <Compile Include="../../src/NetworkStats.App/Platforms/Windows/Updates/UpdateSession.cs" Link="Updates/UpdateSession.cs" />
+    <Compile Include="../../src/NetworkStats.App/Platforms/Windows/Updates/UpdateFiles.cs" Link="Updates/UpdateFiles.cs" />
+    <Compile Include="../../src/NetworkStats.App/Platforms/Windows/Updates/UpdateWorker.cs" Link="Updates/UpdateWorker.cs" />
   </ItemGroup>
 </Project>

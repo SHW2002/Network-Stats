@@ -43,6 +43,8 @@ internal sealed class SettingsPage : ContentPage
         var addProxy = Ui.Button("+ 添加代理");
         addProxy.Clicked += (_, _) => AddProxy(new($"代理 {_proxies.Children.Count + 1}", "http", "127.0.0.1", 7890));
         _save.Clicked += async (_, _) => await SaveAsync();
+        var updates = Ui.Button("检查更新");
+        updates.Clicked += async (_, _) => await OpenUpdatesAsync();
         var parameters = new VerticalStackLayout { Spacing = Ui.Space(12) };
         parameters.Add(Field("探测间隔 / 秒", "10–3600，默认 60；图表始终每分钟一格", _interval));
         parameters.Add(Field("请求超时 / 秒", "1–60，超时显示红色", _timeout));
@@ -57,6 +59,8 @@ internal sealed class SettingsPage : ContentPage
                 {
                     Ui.Text("配置仅对这台设备生效", 21, bold: true),
                     Ui.Text("保存后自动安排一轮探测；直连始终保留且不会使用系统 HTTP / SOCKS 代理。", 12, Ui.Muted),
+                    Ui.Card(new VerticalStackLayout { Spacing = Ui.Space(8), Children =
+                        { Ui.Text("软件更新", 17, bold: true), Ui.Text($"当前版本 v{AppInfo.Current.VersionString} · GitHub Releases · 可配置更新代理", 12, Ui.Muted), updates } }),
                     Appearance, Startup, Ui.Card(parameters),
                     Ui.Text("目标网站", 17, bold: true), _sites, addSite,
                     Ui.Text("代理线路", 17, bold: true),
@@ -77,6 +81,13 @@ internal sealed class SettingsPage : ContentPage
     private void AddSite(SiteDefinition site) => _sites.Add(new SiteEditor(site, editor => _sites.Remove(editor)));
     private void AddProxy(ProxyDefinition proxy) => _proxies.Add(new ProxyEditor(proxy, editor => _proxies.Remove(editor)));
 
+    internal async Task<UpdatePage> OpenUpdatesAsync(Updates.IUpdateInstaller? installer = null, Func<string?, HttpClient>? clientFactory = null)
+    {
+        var page = new UpdatePage(_monitor, installer, clientFactory);
+        await Navigation.PushAsync(page, false);
+        return page;
+    }
+
     internal async Task SaveAsync()
     {
         _save.IsEnabled = false;
@@ -84,6 +95,7 @@ internal sealed class SettingsPage : ContentPage
         {
             var updated = _initial with
             {
+                UpdateProxy = _monitor.Settings.UpdateProxy,
                 Theme = Appearance.SelectedTheme, MinimizeOnClose = Appearance.MinimizeOnClose,
                 LaunchOnStartup = Startup.Status.Supported ? Startup.Enabled : _initial.LaunchOnStartup,
                 IntervalSeconds = Number(_interval), TimeoutSeconds = Number(_timeout), SlowThresholdMs = Number(_threshold),

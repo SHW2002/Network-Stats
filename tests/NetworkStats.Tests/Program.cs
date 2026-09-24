@@ -23,7 +23,11 @@ using NetworkStats.Tests;
     ("实际下载字节、过程进度和直连绕过系统代理", DownloadSpeedTests.StreamingAndDirectAsync),
     ("下载流量限制、全程时限和主动取消", DownloadSpeedTests.LimitsAndCancellationAsync),
     ("下载重定向、错误、断流和压缩数据计量", DownloadSpeedTests.RedirectErrorsAndEncodingAsync),
-    ("通过 HTTP 和 SOCKS5 代理下载测速", DownloadSpeedTests.ProxyRoutesAsync)
+    ("通过 HTTP 和 SOCKS5 代理下载测速", DownloadSpeedTests.ProxyRoutesAsync),
+    ("正式更新版本比较与发布来源校验", UpdateTests.ReleasesAsync),
+    ("更新下载进度、校验失败及取消清理", UpdateTests.DownloadsAsync),
+    ("独立更新代理校验和持久化", UpdateTests.ProxyConfigurationAsync),
+    ("更新直连绕过系统代理及 HTTP/SOCKS5 传输", UpdateTests.ProxyTransportAsync)
 ];
 var failed = 0;
 foreach (var test in tests)

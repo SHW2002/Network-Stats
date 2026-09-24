@@ -68,6 +68,7 @@ try {
             $report | Write-Output
             if ($process.ExitCode -ne 0 -or $report[0] -ne 'PASS' -or
                 $report -notcontains 'MAUI: window loaded, native templates applied, timeline drawing completed' -or
+                $report -notcontains 'Updates: proxy persistence, version check, verified download and install handoff' -or
                 $report -notcontains 'URL speed: configured URL automatically measured and speed rendered on main timeline' -or
                 $report -notcontains 'URL speed: single-site page measured the same configured path and query' -or
                 $report -notcontains 'Download metrics: body throughput, separate timings, small-sample hints and legacy history verified' -or
