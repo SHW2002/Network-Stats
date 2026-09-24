@@ -12,6 +12,17 @@ internal static class DownloadTestEndpoints
     {
         switch (context.Request.Path.Value)
         {
+            case "/download-small-buffered":
+            case "/download-small-slow":
+                context.Response.ContentLength = 4096;
+                if (context.Request.Path == "/download-small-slow")
+                {
+                    await context.Response.StartAsync(context.RequestAborted);
+                    await context.Response.Body.FlushAsync(context.RequestAborted);
+                }
+                await Task.Delay(300, context.RequestAborted);
+                await context.Response.Body.WriteAsync(new byte[4096], context.RequestAborted);
+                return true;
             case "/download":
             case "/download-slow":
             case "/download-late-headers":

@@ -8,6 +8,7 @@ namespace NetworkStats.App.Platforms.Windows;
 internal sealed class UrlTestServer : IAsyncDisposable
 {
     public const int BodySize = 524288;
+    public const int SmallBodySize = 4096;
     private const string Target = "/configured/page?check=exact%20url&source=settings";
     private readonly TcpListener _listener = new(IPAddress.Loopback, 0);
     private readonly CancellationTokenSource _stop = new();
@@ -15,14 +16,16 @@ internal sealed class UrlTestServer : IAsyncDisposable
     private readonly List<Task> _connections = [];
     private int _requests;
     private int _unexpectedTarget;
+    private readonly bool _smallResponse;
     public int Requests => Volatile.Read(ref _requests);
     public bool UnexpectedTarget => Volatile.Read(ref _unexpectedTarget) != 0;
     public string? UnexpectedRequest { get; private set; }
     public string Url { get; }
     public TaskCompletionSource ReleaseResponse { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public UrlTestServer(bool holdResponse = false)
+    public UrlTestServer(bool holdResponse = false, bool smallResponse = false)
     {
+        _smallResponse = smallResponse;
         if (!holdResponse) ReleaseResponse.TrySetResult();
         _listener.Start();
         Url = $"http://127.0.0.1:{((IPEndPoint)_listener.LocalEndpoint).Port}{Target}";
@@ -57,6 +60,15 @@ internal sealed class UrlTestServer : IAsyncDisposable
             while (await reader.ReadLineAsync(token) is { Length: > 0 }) { }
             await ReleaseResponse.Task.WaitAsync(token);
             await Task.Delay(600, token); // 响应头之前的等待不应降低响应体下载速度。
+            if (_smallResponse)
+            {
+                var headers = Encoding.ASCII.GetBytes(
+                    $"HTTP/1.1 200 OK\r\nContent-Length: {SmallBodySize}\r\nConnection: close\r\n\r\n");
+                var buffered = new byte[headers.Length + SmallBodySize];
+                headers.CopyTo(buffered, 0);
+                await stream.WriteAsync(buffered, token);
+                return;
+            }
             await stream.WriteAsync(Encoding.ASCII.GetBytes(
                 $"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {BodySize}\r\nConnection: close\r\n\r\n"), token);
             var block = new byte[64 * 1024];

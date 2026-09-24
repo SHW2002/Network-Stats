@@ -8,8 +8,11 @@ public sealed record UrlTransfer(long BytesReceived, double TotalMilliseconds, D
     double? TransferMilliseconds = null, bool UsedBrowser = false)
 {
     [JsonIgnore]
-    public double? MegabytesPerSecond => TransferMilliseconds is > 0 && BytesReceived > 0
-        ? BytesReceived / 1000.0 / TransferMilliseconds.Value : null;
+    public double? MegabytesPerSecond => TransferMilliseconds is { } elapsed
+        ? DownloadRate.MegabytesPerSecond(BytesReceived, elapsed) : null;
+
+    [JsonIgnore]
+    public bool InsufficientSample => TransferMilliseconds is not null && BytesReceived > 0 && MegabytesPerSecond is null;
 
     [JsonIgnore]
     public double? MegabitsPerSecond => MegabytesPerSecond * 8;

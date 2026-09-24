@@ -42,7 +42,29 @@ internal static class SpeedTestVerifier
                 throw new InvalidOperationException("Single-site page did not display body speed, timing breakdown and sample hint.");
             await WindowCapture.SaveAsync(native, "speed");
             await mainPage.Navigation.PopAsync(false);
+            await VerifyInsufficientSampleAsync(mainPage, monitor, timeout.Token);
         }
         finally { await monitor.SaveSettingsAsync(original); }
+    }
+
+    private static async Task VerifyInsufficientSampleAsync(MainPage mainPage, MonitorEngine monitor, CancellationToken token)
+    {
+        await using var server = new UrlTestServer(smallResponse: true);
+        var site = new SiteDefinition("Buffered page", server.Url);
+        await monitor.SaveSettingsAsync(monitor.Settings with { Sites = [site] });
+        while (mainPage.GetSpeedText(site.Id, "direct") != "样本不足")
+            await Task.Delay(50, token);
+        var sample = monitor.Snapshot().Samples.Last(sample => sample.SiteId == site.Id);
+        if (sample.Status == ProbeStatus.Unreachable ||
+            sample.Transfer is not { BytesReceived: UrlTestServer.SmallBodySize, MegabytesPerSecond: null } ||
+            !ProbePresentation.Describe(new(site, monitor.Settings.GetRoutes()[0], sample.CheckedAt, sample)).Contains("无法可靠计算下载速度"))
+            throw new InvalidOperationException("Buffered response lost its successful visit or sample explanation.");
+        var page = await mainPage.OpenSpeedTestAsync();
+        while (!page.IsLoaded || page.Width <= 0) await Task.Delay(50, token);
+        await page.RunAsync();
+        if (page.LastResult is not { Succeeded: true, Download.InsufficientSample: true } ||
+            page.DisplayedSpeed != "样本不足" || !page.HasTimingBreakdown || !page.HasShortSampleHint)
+            throw new InvalidOperationException("Single-site page displayed a fictitious buffered speed.");
+        await mainPage.Navigation.PopAsync(false);
     }
 }

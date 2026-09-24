@@ -38,6 +38,7 @@ internal sealed class SiteSummaryView : VerticalStackLayout
         _quality.IsVisible = sample is { Transfer.UsedBrowser: true } or { Status: not ProbeStatus.Unreachable, Transfer.ShortSample: true };
         _quality.Text = sample is { Transfer.UsedBrowser: true }
             ? "旧版浏览器记录"
+            : sample is { Transfer.InsufficientSample: true } ? "数据过少或读取过快"
             : _quality.IsVisible ? "样本较小 · 仅供参考" : "";
     }
 }

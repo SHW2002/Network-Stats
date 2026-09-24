@@ -19,7 +19,7 @@ internal static class EngineTests
         listener.Stop();
         var settings = new MonitorSettings
         {
-            Sites = [new("target", target.Address + "/download?source=configured")],
+            Sites = [new("target", target.Address + "/download-slow?source=configured")],
             Proxies = [new("working", "http", "127.0.0.1", new Uri(proxy.Address).Port),
                 new("unavailable", "http", "127.0.0.1", unusedPort)]
         };
@@ -34,7 +34,7 @@ internal static class EngineTests
         Check.That(samples.Where(sample => sample.Status != ProbeStatus.Unreachable)
             .All(sample => sample.Transfer is { BytesReceived: DownloadTestEndpoints.Size, MegabytesPerSecond: > 0 }),
             "Automatic direct/proxy rounds did not measure configured URL bodies");
-        Check.That(target.LastRawTarget == "/download?source=configured" && proxy.LastRawTarget == settings.Sites[0].Url,
+        Check.That(target.LastRawTarget == "/download-slow?source=configured" && proxy.LastRawTarget == settings.Sites[0].Url,
             "Automatic measurements changed the configured URL");
     }
 

@@ -7,9 +7,9 @@ public enum DownloadCompletion { EndOfFile, ByteLimit, TimeLimit, Failed }
 public sealed record DownloadProgress(long BytesReceived, TimeSpan TransferTime, TimeSpan TotalTime)
 {
     // 网络速率采用十进制单位；测量 HTTP 响应体吞吐，不计 TLS/HTTP 协议开销。
-    public double MegabytesPerSecond => TransferTime.TotalSeconds > 0
-        ? BytesReceived / 1_000_000.0 / TransferTime.TotalSeconds : 0;
-    public double MegabitsPerSecond => MegabytesPerSecond * 8;
+    public double? MegabytesPerSecond => DownloadRate.MegabytesPerSecond(BytesReceived, TransferTime.TotalMilliseconds);
+    public double? MegabitsPerSecond => MegabytesPerSecond * 8;
+    public bool InsufficientSample => BytesReceived > 0 && MegabytesPerSecond is null;
     public TimeSpan ResponseWaitTime => TimeSpan.FromTicks(Math.Max(0, TotalTime.Ticks - TransferTime.Ticks));
     public bool ShortSample => IsShortSample(BytesReceived, TransferTime.TotalMilliseconds);
 

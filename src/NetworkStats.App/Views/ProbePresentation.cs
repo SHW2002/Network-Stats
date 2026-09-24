@@ -4,6 +4,9 @@ namespace NetworkStats.App.Views;
 
 internal static class ProbePresentation
 {
+    public static string InsufficientSampleHint =>
+        $"样本不足：下载量不足 {DownloadRate.MinimumBytes / 1000} KB 或读取不足 {DownloadRate.MinimumMilliseconds:N0} ms，无法可靠计算下载速度。";
+
     public static string Speed(ProbeResult? sample) => sample switch
     {
         null => "等待 URL 测速",
@@ -13,12 +16,13 @@ internal static class ProbePresentation
         { Status: ProbeStatus.Unreachable } => "不可访问",
         { Transfer: null } => "未记录下载速度",
         { Transfer.BytesReceived: 0 } => "无响应体",
+        { Transfer.InsufficientSample: true } => "样本不足",
         { Transfer.MegabytesPerSecond: { } speed } => Rate(speed),
         _ => "未记录下载速度"
     };
 
-    public static string Rate(double megabytesPerSecond) => megabytesPerSecond >= 1
-        ? $"{megabytesPerSecond:N2} MB/s" : $"{megabytesPerSecond * 1000:N1} KB/s";
+    public static string Rate(double? megabytesPerSecond) => megabytesPerSecond is not { } speed ? "样本不足" : speed >= 1
+        ? $"{speed:N2} MB/s" : $"{speed * 1000:N1} KB/s";
 
     public static string Describe(CellSelection selection)
     {
@@ -37,7 +41,9 @@ internal static class ProbePresentation
             if (transfer.TransferMilliseconds is { } bodyMs)
                 text += $"\n连接与响应等待：{transfer.ResponseWaitMilliseconds:N0} ms · 响应体读取：{bodyMs:N0} ms";
             else text += "\n旧版未保存响应体读取时间，无法还原下载速度。";
-            if (sample.Status != ProbeStatus.Unreachable && transfer.ShortSample)
+            if (sample.Status != ProbeStatus.Unreachable && transfer.InsufficientSample)
+                text += $"\n{InsufficientSampleHint}";
+            else if (sample.Status != ProbeStatus.Unreachable && transfer.ShortSample)
                 text += "\n样本较小：下载量不足 1 MB 或读取不足 2 秒，速率容易受缓冲影响，仅供参考。";
             if (transfer.Url != selection.Site.Url) text += $"\n重定向后地址：{transfer.Url}";
             text += transfer.Completion switch
