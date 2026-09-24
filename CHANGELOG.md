@@ -1,5 +1,11 @@
 # 更新日志
 
+## v1.4.4 · 2026-09-24
+
+- 移除 Windows、Android、macOS 和 iOS 图标的外围留白，圆角底板铺满画布。
+- Android 和 iOS 使用与图标底板一致的深蓝色背景，消除浅色外围边框。
+- Windows 的 9 种 ICO 尺寸和文档预览同步更新；生成脚本按 SVG viewBox 裁切，并避免缩放产生透明边。
+
 ## v1.4.3 · 2026-09-24
 
 - 以原 Windows 蓝底柱状图为基础，统一 Windows、Android、macOS 和 iOS 图标，使用圆角底板并保留至少 15% 的边距。

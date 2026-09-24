@@ -42,7 +42,7 @@ Run local tests and create the Windows single-file package:
 
 Each `dotnet publish` also archives the publish directory under `bin/Release-Archives/`, named `application-platform-package-type-yymmdd-hhmmss.zip`.
 
-Shared icon SVGs live in `src/NetworkStats.App/Resources/AppIcon/`. After editing them, run `./scripts/icons/update-icons.ps1` on Windows to regenerate the Windows ICO and documentation PNG. The rounded tile has 16.4% padding on each side; Android and iOS use a light outer background for platform icon compatibility.
+Shared icon SVGs live in `src/NetworkStats.App/Resources/AppIcon/`. After editing them, run `./scripts/icons/update-icons.ps1` on Windows to regenerate the Windows ICO and documentation PNG. The rounded tile fills the canvas without outer padding; Android and iOS use a matching navy background for platform icon compatibility.
 
 [Changelog](CHANGELOG.md) · [MIT License](LICENSE)
 

@@ -42,7 +42,7 @@ dotnet workload install maui-windows
 
 每次执行 `dotnet publish` 都会自动将发布目录压缩到 `bin/Release-Archives/`，文件名为 `程序名-平台-包体类型-yymmdd-hhmmss.zip`。
 
-共享图标 SVG 位于 `src/NetworkStats.App/Resources/AppIcon/`；修改后在 Windows 上运行 `./scripts/icons/update-icons.ps1`，同步生成 Windows ICO 和文档 PNG。圆角底板四周各留出 16.4% 边距，Android 和 iOS 使用浅色外围背景以适配平台图标要求。
+共享图标 SVG 位于 `src/NetworkStats.App/Resources/AppIcon/`；修改后在 Windows 上运行 `./scripts/icons/update-icons.ps1`，同步生成 Windows ICO 和文档 PNG。圆角底板铺满画布，不留外围边距；Android 和 iOS 使用与底板一致的深蓝色背景以适配平台图标要求。
 
 [更新日志](CHANGELOG.md) · [MIT License](LICENSE)
 

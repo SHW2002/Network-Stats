@@ -10,8 +10,13 @@ $canvas = [System.Drawing.Bitmap]::new(1024, 1024)
 $graphics = [System.Drawing.Graphics]::FromImage($canvas)
 try {
     $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    $graphics.ScaleTransform(8, 8)
+    $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
     [xml]$svg = Get-Content -LiteralPath (Join-Path $iconDirectory 'appicon.svg') -Raw
+    $viewBox = @($svg.svg.viewBox -split '\s+' | ForEach-Object {
+        [single]::Parse($_, [System.Globalization.CultureInfo]::InvariantCulture)
+    })
+    $graphics.ScaleTransform($canvas.Width / $viewBox[2], $canvas.Height / $viewBox[3])
+    $graphics.TranslateTransform(-$viewBox[0], -$viewBox[1])
     foreach ($rect in $svg.svg.rect) {
         $x = [single]$rect.x; $y = [single]$rect.y
         $width = [single]$rect.width; $height = [single]$rect.height
@@ -37,16 +42,17 @@ try {
         $bitmap = [System.Drawing.Bitmap]::new($size, $size)
         $resizer = [System.Drawing.Graphics]::FromImage($bitmap)
         $stream = [System.IO.MemoryStream]::new()
+        $attributes = [System.Drawing.Imaging.ImageAttributes]::new()
         try {
             $resizer.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
             $resizer.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-            # Keep antialiasing inside the 15% safe area even at tiny ICO sizes.
-            $padding = [int][Math]::Ceiling($size * 0.15)
-            $resizer.SetClip([System.Drawing.Rectangle]::new($padding, $padding, $size - 2 * $padding, $size - 2 * $padding))
-            $resizer.DrawImage($canvas, [System.Drawing.Rectangle]::new(0, 0, $size, $size))
+            # Mirror edge pixels so bicubic resizing does not introduce a transparent border.
+            $attributes.SetWrapMode([System.Drawing.Drawing2D.WrapMode]::TileFlipXY)
+            $resizer.DrawImage($canvas, [System.Drawing.Rectangle]::new(0, 0, $size, $size),
+                0, 0, $canvas.Width, $canvas.Height, [System.Drawing.GraphicsUnit]::Pixel, $attributes)
             $bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
             ,$stream.ToArray()
-        } finally { $stream.Dispose(); $resizer.Dispose(); $bitmap.Dispose() }
+        } finally { $attributes.Dispose(); $stream.Dispose(); $resizer.Dispose(); $bitmap.Dispose() }
     }
     $writer = [System.IO.BinaryWriter]::new([System.IO.File]::Create($windowsIcon))
     try {
