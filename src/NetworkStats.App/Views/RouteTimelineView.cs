@@ -111,7 +111,7 @@ internal sealed class RouteTimelineView : ContentView
             row.Summary.Update(latest, _speedMeasurementEnabled);
             SemanticProperties.SetDescription(row.View,
                 $"{row.Site.Name} 经由 {_route.Name}：每次探测一格；最新记录 {Ui.StatusText(latest?.Status)}，" +
-                (_speedMeasurementEnabled ? ProbePresentation.Speed(latest) : "周期网速检测已关闭"));
+                (_speedMeasurementEnabled ? ProbePresentation.Speed(latest) : "网速检测已关闭"));
         }
         ResizePlot();
     }

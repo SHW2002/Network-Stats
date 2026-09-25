@@ -31,7 +31,7 @@ internal sealed class SiteSummaryView : VerticalStackLayout
     public void Update(ProbeResult? sample, bool speedMeasurementEnabled)
     {
         _speed.Text = !speedMeasurementEnabled && sample is not { Status: ProbeStatus.Unreachable }
-            ? "周期网速检测已关闭"
+            ? "网速检测已关闭"
             : (sample is { Status: not ProbeStatus.Unreachable, Transfer.MegabytesPerSecond: not null } ? "下载 " : "") +
                 ProbePresentation.Speed(sample);
         Ui.TextColor(_speed, sample is null ? Ui.Muted : Ui.StatusColor(sample.Status));

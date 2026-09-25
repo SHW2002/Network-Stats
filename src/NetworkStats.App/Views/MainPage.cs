@@ -206,7 +206,7 @@ public sealed class MainPage : ContentPage
             $"Ping 流量按每次可访问性请求约 {SpeedMeasurementTraffic.EstimatedAvailabilityBytesPerSample / 1000} KB 估算。" +
             (snapshot.Settings.SpeedMeasurementEnabled
                 ? "测速流量按每个 URL 每条线路每轮最多 1 MB 估算；下载速度只使用响应体读取时间。"
-                : "周期网速检测已关闭，不会主动读取响应体；仍可使用“单项测速”。");
+                : "网速检测已关闭，不会主动读取响应体；仍可使用“单项测速”。");
     }
 
     private void SelectCell(CellSelection selection)
