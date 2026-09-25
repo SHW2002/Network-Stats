@@ -35,6 +35,8 @@ public sealed class MainPage : ContentPage
     internal bool HasDrawnCurrentTheme => _routeViews.Count > 0 && _routeViews.All(route => route.HasDrawnCurrentTheme);
     internal bool HasUrlSpeedReadings => _routeViews.Any(route => route.HasSpeedReadings);
     internal bool HasShortSampleHints => _routeViews.Any(route => route.HasShortSampleHints);
+    internal bool HidesDisabledSpeedSummaries => _routeViews.Count > 0 && _routeViews.All(route => route.HidesDisabledSpeed);
+    internal bool UsesStatusColors => _routeViews.Count > 0 && _routeViews.All(route => route.UsesStatusColors);
     internal bool HasSeparatedTrafficEstimate => _traffic.ValueText.StartsWith("Ping ") &&
         _traffic.NoteText.StartsWith("测速 ");
     internal bool TimelineVisible => _routeList.IsVisible;
@@ -206,7 +208,7 @@ public sealed class MainPage : ContentPage
             $"Ping 流量按每次可访问性请求约 {SpeedMeasurementTraffic.EstimatedAvailabilityBytesPerSample / 1000} KB 估算。" +
             (snapshot.Settings.SpeedMeasurementEnabled
                 ? "测速流量按每个 URL 每条线路每轮最多 1 MB 估算；下载速度只使用响应体读取时间。"
-                : "网速检测已关闭，不会主动读取响应体；仍可使用“单项测速”。");
+                : "关闭时不会主动读取响应体；仍可使用“单项测速”。");
     }
 
     private void SelectCell(CellSelection selection)

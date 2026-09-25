@@ -42,6 +42,8 @@ internal static class PackageVerifier
                 throw new InvalidOperationException("Native visual tree was not attached.");
             if (!page.HasSeparatedTrafficEstimate)
                 throw new InvalidOperationException("Main page did not separate hourly ping and speed traffic estimates.");
+            if (!page.HidesDisabledSpeedSummaries || !page.UsesStatusColors)
+                throw new InvalidOperationException("Timeline summaries did not hide disabled speed or apply status colors.");
             VerifyTimeAxisScale();
             if (!app.TrayInitialized) throw new InvalidOperationException("Tray initialization was skipped.");
             var icon = Native.LoadImage(0, Path.Combine(AppContext.BaseDirectory, "app.ico"), 1, 32, 32, 0x10);
@@ -68,6 +70,7 @@ internal static class PackageVerifier
             await Task.Delay(300);
             report.Add("Navigation: settings opened and returned to timeline");
             report.Add("Traffic: speed measurement defaults off; settings and main metrics show separate hourly estimates");
+            report.Add("Timeline summaries: disabled speed hidden; response time and enabled speed use status colors");
             StartupDiagnostics.Write("Navigation verification completed");
             await UpdatePageVerifier.VerifyAsync(page, services.GetRequiredService<MonitorEngine>());
             StartupDiagnostics.Write("Updates verification completed");

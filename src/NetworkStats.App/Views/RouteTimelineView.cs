@@ -20,6 +20,8 @@ internal sealed class RouteTimelineView : ContentView
     internal bool HasDrawnCurrentTheme => HasDrawn && _rows.All(row => row.Drawing.DrawnTheme == Application.Current!.RequestedTheme);
     internal bool HasSpeedReadings => _rows.Any(row => row.Summary.HasSpeedReading);
     internal bool HasShortSampleHints => _rows.Any(row => row.Summary.HasShortSampleHint);
+    internal bool HidesDisabledSpeed => _speedMeasurementEnabled || _rows.All(row => !row.Summary.SpeedVisible);
+    internal bool UsesStatusColors => _rows.All(row => row.Summary.UsesStatusColors);
     internal string? GetSpeedText(string siteId, string routeId) => routeId == _route.Id
         ? _rows.FirstOrDefault(row => row.Site.Id == siteId).Summary?.DisplayedSpeed : null;
 
@@ -110,8 +112,8 @@ internal sealed class RouteTimelineView : ContentView
             var latest = buckets.LastOrDefault(sample => sample is not null);
             row.Summary.Update(latest, _speedMeasurementEnabled);
             SemanticProperties.SetDescription(row.View,
-                $"{row.Site.Name} 经由 {_route.Name}：每次探测一格；最新记录 {Ui.StatusText(latest?.Status)}，" +
-                (_speedMeasurementEnabled ? ProbePresentation.Speed(latest) : "网速检测已关闭"));
+                $"{row.Site.Name} 经由 {_route.Name}：每次探测一格；最新记录 {Ui.StatusText(latest?.Status)}" +
+                (_speedMeasurementEnabled ? $"，{ProbePresentation.Speed(latest)}" : ""));
         }
         ResizePlot();
     }

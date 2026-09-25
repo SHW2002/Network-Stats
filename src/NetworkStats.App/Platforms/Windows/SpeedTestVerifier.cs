@@ -25,7 +25,8 @@ internal static class SpeedTestVerifier
                 throw new InvalidOperationException("Automatic URL measurement did not use the configured path/query.");
             var sample = monitor.Snapshot().Samples.Last(sample => sample.SiteId == site.Id);
             if (sample.Transfer?.ResponseWaitMilliseconds < 500 ||
-                mainPage.GetSpeedText(site.Id, "direct") != $"下载 {ProbePresentation.Rate(sample.Transfer!.MegabytesPerSecond!.Value)}")
+                mainPage.GetSpeedText(site.Id, "direct") != $"下载 {ProbePresentation.Rate(sample.Transfer!.MegabytesPerSecond!.Value)}" ||
+                !mainPage.UsesStatusColors)
                 throw new InvalidOperationException("Main timeline did not display response-body download speed separately.");
             var legacy = sample with { Transfer = sample.Transfer! with { TransferMilliseconds = null } };
             if (ProbePresentation.Speed(legacy) != "未记录下载速度")

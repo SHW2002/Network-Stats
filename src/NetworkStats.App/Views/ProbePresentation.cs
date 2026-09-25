@@ -60,7 +60,7 @@ internal static class ProbePresentation
         }
         else text += selection.SpeedMeasurementEnabled
             ? "\n旧版记录只包含响应头耗时，没有下载速度数据。"
-            : "\n网速检测已关闭，本次只获取响应头，没有读取响应体。";
+            : "\n本次只获取响应头，没有读取响应体。";
         return text + (sample.Error is { } error ? $"\n{error}" : "");
     }
 }

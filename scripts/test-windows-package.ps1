@@ -78,6 +78,7 @@ try {
                 $report -notcontains 'MAUI: window loaded, native templates applied, timeline drawing completed' -or
                 $report -notcontains 'Timeline axis: left tick visible; selected-range intervals are equally spaced; right edge fixed to Now' -or
                 $report -notcontains 'Traffic: speed measurement defaults off; settings and main metrics show separate hourly estimates' -or
+                $report -notcontains 'Timeline summaries: disabled speed hidden; response time and enabled speed use status colors' -or
                 $report -notcontains 'Scrolling: vertical, horizontal and continuous wheel input over timelines and settings verified' -or
                 $report -notcontains 'Updates: proxy persistence, version check, verified download and install handoff' -or
                 $report -notcontains 'URL speed: configured URL automatically measured and speed rendered on main timeline' -or
