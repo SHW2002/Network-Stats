@@ -35,7 +35,7 @@ try {
     New-Item -ItemType Directory -Path $dataDirectory | Out-Null
     # Keep the real monitor and four chart rows, with loopback-only targets and isolated storage.
     $settings = @{
-        intervalSeconds = 60; timeoutSeconds = 1; slowThresholdMs = 250
+        intervalSeconds = 60; timeoutSeconds = 1; slowThresholdMs = 250; speedMeasurementEnabled = $false
         maxConcurrency = 12; retentionHours = 168; proxies = @()
         sites = @('Baidu', 'Google', 'GitHub', 'Pixiv') | ForEach-Object {
             @{ name = $_; url = ('http://127.0.0.1:1/' + $_) }
@@ -76,6 +76,8 @@ try {
             }
             if ($process.ExitCode -ne 0 -or $report[0] -ne 'PASS' -or
                 $report -notcontains 'MAUI: window loaded, native templates applied, timeline drawing completed' -or
+                $report -notcontains 'Timeline axis: left tick visible; selected-range intervals are equally spaced; right edge fixed to Now' -or
+                $report -notcontains 'Traffic: speed measurement defaults off; settings and main metrics show separate hourly estimates' -or
                 $report -notcontains 'Scrolling: vertical, horizontal and continuous wheel input over timelines and settings verified' -or
                 $report -notcontains 'Updates: proxy persistence, version check, verified download and install handoff' -or
                 $report -notcontains 'URL speed: configured URL automatically measured and speed rendered on main timeline' -or

@@ -14,7 +14,9 @@ internal static class SpeedTestVerifier
         var site = new SiteDefinition("URL check", server.Url);
         try
         {
-            await monitor.SaveSettingsAsync(original with { Sites = [site], Proxies = [], TimeoutSeconds = 5 });
+            await monitor.SaveSettingsAsync(original with
+                { SpeedMeasurementEnabled = true, DirectSpeedMeasurementEnabled = true,
+                    Sites = [site], Proxies = [], TimeoutSeconds = 5 });
             while (!mainPage.HasUrlSpeedReadings || !mainPage.HasDrawnTimelines || !mainPage.HasShortSampleHints ||
                 !monitor.Snapshot().Samples.Any(sample => sample.SiteId == site.Id &&
                     sample.Transfer is { BytesReceived: UrlTestServer.BodySize, MegabytesPerSecond: > 0 }))

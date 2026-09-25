@@ -42,7 +42,8 @@ internal static class StorageTests
         var expired = early with { CheckedAt = minute.AddHours(-2) };
         await history.RecordAsync([late, early, expired], 1, default);
         var samples = history.Query(DateTimeOffset.UtcNow.AddHours(-3), DateTimeOffset.UtcNow);
-        Check.That(samples.Length == 1 && samples[0] == late, "Minute buckets or retention are incorrect");
+        Check.That(samples.Length == 2 && samples.SequenceEqual([early, late]),
+            "Each completed probe should remain a separate history sample");
         var path = Path.Combine(temporary.Path, "history", minute.UtcDateTime.ToString("yyyy-MM-dd") + ".jsonl");
         await File.AppendAllTextAsync(path, "truncated-json");
         var next = late with { CheckedAt = minute.AddMinutes(1) };
@@ -50,7 +51,8 @@ internal static class StorageTests
         var restored = new HistoryStore(temporary.Path);
         await restored.LoadAsync(1);
         var restoredSamples = restored.Query(minute, DateTimeOffset.UtcNow);
-        Check.That(restoredSamples.Length == 2, "A torn last line swallowed the next valid sample");
+        Check.That(restoredSamples.Length == 3 && restoredSamples.Contains(early) && restoredSamples.Contains(late) &&
+            restoredSamples.Contains(next), "A torn last line swallowed a valid probe sample");
         Check.That(restored.Warning is not null, "Corrupt history was not reported");
         Check.That(restored.Query(minute.AddMinutes(3), minute.AddMinutes(5)).Length == 0,
             "Missing minutes were filled with invented samples");

@@ -4,14 +4,21 @@ namespace NetworkStats.App.Views;
 
 internal sealed class TimelineDrawable : IDrawable
 {
-    public ProbeResult?[] Samples { get; set; } = new ProbeResult?[60];
+    public ProbeResult?[] Samples { get; set; } = [];
+    public DateTimeOffset[] SampleTimes { get; set; } = [];
     public int SelectedIndex { get; set; } = -1;
     internal bool HasDrawn { get; private set; }
     internal AppTheme DrawnTheme { get; private set; }
 
     public void Draw(ICanvas canvas, RectF dirtyRect)
     {
-        if (dirtyRect.Width <= 0 || Samples.Length == 0) return;
+        if (dirtyRect.Width <= 0) return;
+        if (Samples.Length == 0)
+        {
+            HasDrawn = true;
+            DrawnTheme = Application.Current!.RequestedTheme;
+            return;
+        }
         var step = dirtyRect.Width / Samples.Length;
         var gap = Math.Min(3, step * 0.25f);
         for (var index = 0; index < Samples.Length; index++)
@@ -34,22 +41,34 @@ internal sealed class TimelineDrawable : IDrawable
 
 internal sealed class TimeAxisDrawable : IDrawable
 {
-    public DateTimeOffset Start { get; set; }
-    public int Minutes { get; set; } = 60;
+    public DateTimeOffset? Now { get; set; }
+    public int RangeMinutes { get; set; } = 60;
 
     public void Draw(ICanvas canvas, RectF dirtyRect)
     {
+        if (dirtyRect.Width <= 0 || Now is not { } now) return;
         canvas.FontColor = Ui.Muted.Current;
         canvas.FontSize = 10;
-        for (var index = 0; index <= 4; index++)
+        canvas.StrokeColor = Ui.Muted.Current;
+        canvas.StrokeSize = 1;
+        var firstLocal = now.AddMinutes(-RangeMinutes).ToLocalTime();
+        var lastLocal = now.ToLocalTime();
+        var format = firstLocal.Date == lastLocal.Date ? "HH:mm" : "MM-dd HH:mm";
+        var labelWidth = TimeAxisScale.TickLabelWidth(dirtyRect.Width);
+        foreach (var tick in TimeAxisScale.Create(now, RangeMinutes, dirtyRect.Width))
         {
-            var minute = (Minutes - 1) * index / 4;
-            var text = Start.AddMinutes(minute).ToLocalTime().ToString(Minutes > 720 ? "dd日 HH:mm" : "HH:mm");
-            var x = (dirtyRect.Width - 72) * index / 4;
-            canvas.DrawString(text, x, 0, 72, 20,
-                index == 4 ? HorizontalAlignment.Right : HorizontalAlignment.Left, VerticalAlignment.Center);
+            var text = tick.Time.ToLocalTime().ToString(format);
+            canvas.DrawString(text, tick.X - labelWidth / 2, 0, labelWidth, 18,
+                HorizontalAlignment.Center, VerticalAlignment.Center);
+            canvas.DrawLine(tick.X, 19, tick.X, dirtyRect.Height);
         }
+        var nowLabelWidth = TimeAxisScale.NowLabelWidth(dirtyRect.Width);
+        var nowX = TimeAxisScale.NowPosition(dirtyRect.Width);
+        canvas.DrawString(TimeAxisScale.NowLabel, dirtyRect.Width - nowLabelWidth, 0, nowLabelWidth, 18,
+            HorizontalAlignment.Center, VerticalAlignment.Center);
+        canvas.DrawLine(nowX, 19, nowX, dirtyRect.Height);
     }
 }
 
-internal sealed record CellSelection(SiteDefinition Site, RouteDefinition Route, DateTimeOffset Minute, ProbeResult? Sample);
+internal sealed record CellSelection(SiteDefinition Site, RouteDefinition Route, DateTimeOffset SampleTime, ProbeResult? Sample,
+    bool SpeedMeasurementEnabled = true);

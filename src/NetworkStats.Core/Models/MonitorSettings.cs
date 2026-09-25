@@ -8,6 +8,8 @@ public sealed record MonitorSettings
     public ThemeMode Theme { get; init; } = ThemeMode.System;
     public bool MinimizeOnClose { get; init; }
     public bool LaunchOnStartup { get; init; }
+    public bool SpeedMeasurementEnabled { get; init; }
+    public bool DirectSpeedMeasurementEnabled { get; init; } = true;
     public string? UpdateProxy { get; init; }
     public int IntervalSeconds { get; init; } = 60;
     public int TimeoutSeconds { get; init; } = 10;
@@ -24,8 +26,8 @@ public sealed record MonitorSettings
     public ProxyDefinition[] Proxies { get; init; } = [];
 
     public RouteDefinition[] GetRoutes() =>
-        [new("direct", "直接连接", null), .. Proxies.Select(proxy =>
-            new RouteDefinition(proxy.Id, proxy.Name, proxy.Address))];
+        [new("direct", "直接连接", null, DirectSpeedMeasurementEnabled), .. Proxies.Select(proxy =>
+            new RouteDefinition(proxy.Id, proxy.Name, proxy.Address, proxy.SpeedMeasurementEnabled))];
 }
 
 public sealed record SiteDefinition(string Name, string Url)
@@ -33,13 +35,14 @@ public sealed record SiteDefinition(string Name, string Url)
     public string Id => StableId.For("site", Url);
 }
 
-public sealed record ProxyDefinition(string Name, string Protocol, string Host, int Port)
+public sealed record ProxyDefinition(string Name, string Protocol, string Host, int Port,
+    bool SpeedMeasurementEnabled = true)
 {
     public string Address => new UriBuilder(Protocol, Host, Port).Uri.AbsoluteUri.TrimEnd('/');
     public string Id => StableId.For("proxy", Address);
 }
 
-public sealed record RouteDefinition(string Id, string Name, string? Address);
+public sealed record RouteDefinition(string Id, string Name, string? Address, bool SpeedMeasurementEnabled = true);
 
 internal static class StableId
 {

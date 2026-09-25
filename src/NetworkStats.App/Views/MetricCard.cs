@@ -4,10 +4,12 @@ internal sealed class MetricCard : ContentView
 {
     private readonly Label _value;
     private readonly Label _note;
+    internal string ValueText => _value.Text;
+    internal string NoteText => _note.Text;
 
-    public MetricCard(string title, string value, string note)
+    public MetricCard(string title, string value, string note, double valueSize = 28)
     {
-        _value = Ui.Text(value, 28, bold: true);
+        _value = Ui.Text(value, valueSize, bold: true);
         _note = Ui.Text(note, 11, Ui.Muted);
         Content = Ui.Card(new VerticalStackLayout
         {

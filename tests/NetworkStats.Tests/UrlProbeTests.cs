@@ -8,7 +8,23 @@ internal static class UrlProbeTests
 {
     private static readonly WebsiteProbe Probe = new();
     private static readonly RouteDefinition Direct = new("direct", "直连", null);
-    private static readonly MonitorSettings Settings = new() { TimeoutSeconds = 5, SlowThresholdMs = 300 };
+    private static readonly MonitorSettings Settings = new()
+        { SpeedMeasurementEnabled = true, TimeoutSeconds = 5, SlowThresholdMs = 300 };
+
+    public static async Task DisabledByDefaultUsesHeadersOnlyAsync()
+    {
+        Check.That(!new MonitorSettings().SpeedMeasurementEnabled, "Automatic speed measurement must default to disabled");
+        await using var server = await LocalHttpServer.StartAsync();
+        var sample = await Probe.CheckAsync(new("headers", server.Address + "/stream"), Direct,
+            new MonitorSettings { TimeoutSeconds = 2, SlowThresholdMs = 1000 }, default);
+        Check.That(sample.Status == ProbeStatus.Healthy && sample.HttpStatus == 200 && sample.Transfer is null && sample.LatencyMs < 1000,
+            "Disabled speed measurement waited for or recorded the response body");
+        var routeDisabled = await Probe.CheckAsync(new("route", server.Address + "/stream"),
+            Direct with { SpeedMeasurementEnabled = false }, new MonitorSettings
+                { SpeedMeasurementEnabled = true, TimeoutSeconds = 2, SlowThresholdMs = 1000 }, default);
+        Check.That(routeDisabled.Status == ProbeStatus.Healthy && routeDisabled.Transfer is null,
+            "A route-level speed measurement switch did not disable body reads");
+    }
 
     public static async Task ExactUrlAndBodyTimingAsync()
     {

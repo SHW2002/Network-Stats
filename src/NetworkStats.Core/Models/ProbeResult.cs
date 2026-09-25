@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace NetworkStats.Models;
 
 public enum ProbeStatus { Healthy, Slow, Unreachable }
@@ -13,8 +15,11 @@ public sealed record ProbeResult(
     UrlTransfer? Transfer = null,
     DateTimeOffset? RoundStartedAt = null)
 {
-    // 同轮请求可能排队跨分钟；按整轮起始分钟归档，保留各请求真实的 CheckedAt。
+    // 保留分钟值供旧版历史和兼容调用使用；新版时间图按 SampleTime 逐次排列。
     public long Minute => (RoundStartedAt ?? CheckedAt).ToUnixTimeSeconds() / 60;
+
+    [JsonIgnore]
+    public DateTimeOffset SampleTime => RoundStartedAt ?? CheckedAt;
 }
 
 public sealed record WorkerStatus(

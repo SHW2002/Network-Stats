@@ -40,11 +40,15 @@ internal static class PackageVerifier
             StartupDiagnostics.Write($"Main page and timelines rendered; startup={startupMs:F0} ms");
             if (native.Content.XamlRoot is null || VisualTreeHelper.GetChildrenCount(native.Content) == 0)
                 throw new InvalidOperationException("Native visual tree was not attached.");
+            if (!page.HasSeparatedTrafficEstimate)
+                throw new InvalidOperationException("Main page did not separate hourly ping and speed traffic estimates.");
+            VerifyTimeAxisScale();
             if (!app.TrayInitialized) throw new InvalidOperationException("Tray initialization was skipped.");
             var icon = Native.LoadImage(0, Path.Combine(AppContext.BaseDirectory, "app.ico"), 1, 32, 32, 0x10);
             if (icon == 0) throw new InvalidOperationException("Bundled tray icon could not be loaded.");
             Native.DestroyIcon(icon);
             report.Add("MAUI: window loaded, native templates applied, timeline drawing completed");
+            report.Add("Timeline axis: left tick visible; selected-range intervals are equally spaced; right edge fixed to Now");
             report.Add("Tray: window integration initialized; bundled icon loaded");
             report.Add($"Window: {window.Width:F0} x {window.Height:F0} DIP; content {page.Width:F0} x {page.Height:F0} DIP");
             await WindowCapture.SaveAsync(native, "main");
@@ -52,14 +56,18 @@ internal static class PackageVerifier
             report.Add("Scrolling: vertical, horizontal and continuous wheel input over timelines and settings verified");
             StartupDiagnostics.Write("Scrolling verification completed");
 
-            await page.Navigation.PushAsync(new SettingsPage(services.GetRequiredService<MonitorEngine>()), false);
+            var settingsPage = new SettingsPage(services.GetRequiredService<MonitorEngine>());
+            await page.Navigation.PushAsync(settingsPage, false);
             await Task.Delay(300);
             if (!page.Navigation.NavigationStack.Last().IsLoaded)
                 throw new InvalidOperationException("Settings page did not load.");
+            if (settingsPage.SpeedMeasurement.Enabled || !settingsPage.SpeedMeasurement.EstimatedTrafficText.Contains("240 MB/小时"))
+                throw new InvalidOperationException("Speed measurement did not default off or show its hourly traffic estimate.");
             await WindowCapture.SaveAsync(native, "settings");
             await page.Navigation.PopAsync(false);
             await Task.Delay(300);
             report.Add("Navigation: settings opened and returned to timeline");
+            report.Add("Traffic: speed measurement defaults off; settings and main metrics show separate hourly estimates");
             StartupDiagnostics.Write("Navigation verification completed");
             await UpdatePageVerifier.VerifyAsync(page, services.GetRequiredService<MonitorEngine>());
             StartupDiagnostics.Write("Updates verification completed");
@@ -101,5 +109,31 @@ internal static class PackageVerifier
 #pragma warning disable IL3000
         return $"{NetworkStats.App.Updates.UpdateServices.CreateInstaller().IsSupported}; entry assembly: {System.Reflection.Assembly.GetEntryAssembly()?.Location}";
 #pragma warning restore IL3000
+    }
+
+    private static void VerifyTimeAxisScale()
+    {
+        var local = new DateTime(2026, 9, 25, 13, 3, 41, DateTimeKind.Unspecified);
+        var now = new DateTimeOffset(local, TimeZoneInfo.Local.GetUtcOffset(local));
+        var ranges = new[] { (Minutes: 60, Interval: 10), (Minutes: 180, Interval: 30),
+            (Minutes: 360, Interval: 60), (Minutes: 1440, Interval: 240) };
+        foreach (var range in ranges)
+        {
+            var ticks = TimeAxisScale.Create(now, range.Minutes, 760);
+            var positions = ticks.Select(tick => tick.X).Append(TimeAxisScale.NowPosition(760)).ToArray();
+            var distances = positions.Zip(positions.Skip(1), (left, right) => right - left).ToArray();
+            if (TimeAxisScale.SelectIntervalMinutes(range.Minutes, 760) != range.Interval ||
+                ticks.Length != range.Minutes / range.Interval ||
+                Math.Abs(ticks[0].X - TimeAxisScale.TickLabelWidth(760) / 2) > 0.01 ||
+                distances.Length > 1 && distances.Any(distance => Math.Abs(distance - distances[0]) > 0.01) ||
+                ticks.Zip(ticks.Skip(1), (left, right) => (right.Time - left.Time).TotalMinutes)
+                    .Any(minutes => minutes != range.Interval) ||
+                ticks.Any(tick => tick.Time.ToLocalTime() is var value &&
+                    (value.Minute % 10 != 0 || value.Second != 0)))
+                throw new InvalidOperationException($"Timeline axis was not equally spaced for {range.Minutes} minutes.");
+        }
+        if (TimeAxisScale.SelectIntervalMinutes(60, 420) != 20 ||
+            TimeAxisScale.SelectIntervalMinutes(1440, 420) != 480)
+            throw new InvalidOperationException("Timeline axis did not adapt its interval to the available width.");
     }
 }

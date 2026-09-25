@@ -8,7 +8,8 @@ internal static class ProbeTests
 {
     private static readonly WebsiteProbe Probe = new();
     private static readonly RouteDefinition Direct = new("direct", "直连", null);
-    private static readonly MonitorSettings Settings = new() { TimeoutSeconds = 5, SlowThresholdMs = 4000 };
+    private static readonly MonitorSettings Settings = new()
+        { SpeedMeasurementEnabled = true, TimeoutSeconds = 5, SlowThresholdMs = 4000 };
 
     public static async Task DirectBypassesSystemProxyAsync()
     {

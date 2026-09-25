@@ -11,8 +11,9 @@ internal sealed class RouteTimelineView : ContentView
     private readonly ScrollView _scroll;
     private readonly TimeAxisDrawable _axis = new();
     private readonly GraphicsView _axisView;
-    private DateTimeOffset _start;
-    private int _minutes = 60;
+    private DateTimeOffset[] _sampleTimes = [];
+    private int _rangeMinutes = 60;
+    private bool _speedMeasurementEnabled;
     private bool _needsScroll = true;
     private double _viewportWidth;
     internal bool HasDrawn => _rows.Count > 0 && _rows.All(row => row.Drawing.HasDrawn);
@@ -40,13 +41,15 @@ internal sealed class RouteTimelineView : ContentView
             view.StartInteraction += (_, args) =>
             {
                 if (args.Touches.Length == 0 || view.Width <= 0) return;
-                var index = Math.Clamp((int)(args.Touches[0].X / view.Width * _minutes), 0, _minutes - 1);
+                if (drawing.Samples.Length == 0) return;
+                var index = Math.Clamp((int)(args.Touches[0].X / view.Width * drawing.Samples.Length), 0,
+                    drawing.Samples.Length - 1);
                 foreach (var row in _rows) { row.Drawing.SelectedIndex = -1; row.View.Invalidate(); }
                 drawing.SelectedIndex = index;
                 view.Invalidate();
-                select(new(site, _route, _start.AddMinutes(index), drawing.Samples[index]));
+                select(new(site, _route, drawing.SampleTimes[index], drawing.Samples[index], _speedMeasurementEnabled));
             };
-            SemanticProperties.SetDescription(view, $"{site.Name} 经由 {route.Name} 的每分钟可访问性时间图，点击色块查看详情");
+            SemanticProperties.SetDescription(view, $"{site.Name} 经由 {route.Name} 的每次探测时间图，点击色块查看详情");
             _charts.Add(view);
             _rows.Add((site, summary, view, drawing));
         }
@@ -77,28 +80,38 @@ internal sealed class RouteTimelineView : ContentView
         Content = Ui.Card(body, 18);
     }
 
-    public void Update(MonitorSnapshot snapshot, IReadOnlyDictionary<(long, string, string), ProbeResult> samples)
+    public void Update(MonitorSnapshot snapshot, ProbeResult[] samples)
     {
-        _needsScroll |= _minutes != snapshot.Minutes;
-        _minutes = snapshot.Minutes;
-        _start = snapshot.WindowStart;
-        _axis.Start = _start;
-        _axis.Minutes = _minutes;
+        _speedMeasurementEnabled = snapshot.Settings.SpeedMeasurementEnabled && _route.SpeedMeasurementEnabled;
+        _needsScroll |= _rangeMinutes != snapshot.RangeMinutes;
+        _rangeMinutes = snapshot.RangeMinutes;
+        var routeSamples = samples.Where(sample => sample.RouteId == _route.Id).ToArray();
+        var sampleTimes = routeSamples.Select(sample => sample.SampleTime).Distinct().Order().ToArray();
+        if (!_sampleTimes.SequenceEqual(sampleTimes))
+        {
+            var wasAtEnd = _charts.WidthRequest - _scroll.ScrollX <= _viewportWidth + 2;
+            _needsScroll |= wasAtEnd;
+            _sampleTimes = sampleTimes;
+        }
+        _axis.Now = _sampleTimes.Length == 0 ? null : snapshot.Now;
+        _axis.RangeMinutes = snapshot.RangeMinutes;
         _axisView.Invalidate();
-        var first = _start.ToUnixTimeSeconds() / 60;
+        var latestByCell = routeSamples.GroupBy(sample => (sample.SiteId, sample.SampleTime))
+            .ToDictionary(group => group.Key, group => group.MaxBy(sample => sample.CheckedAt)!);
         foreach (var row in _rows)
         {
-            var buckets = new ProbeResult?[_minutes];
+            var buckets = new ProbeResult?[_sampleTimes.Length];
             for (var index = 0; index < buckets.Length; index++)
-                if (samples.TryGetValue((first + index, row.Site.Id, _route.Id), out var sample))
-                    buckets[index] = sample;
+                if (latestByCell.TryGetValue((row.Site.Id, _sampleTimes[index]), out var sample)) buckets[index] = sample;
             row.Drawing.Samples = buckets;
+            row.Drawing.SampleTimes = _sampleTimes;
             row.Drawing.SelectedIndex = -1;
             row.View.Invalidate();
             var latest = buckets.LastOrDefault(sample => sample is not null);
-            row.Summary.Update(latest);
+            row.Summary.Update(latest, _speedMeasurementEnabled);
             SemanticProperties.SetDescription(row.View,
-                $"{row.Site.Name} 经由 {_route.Name}：最新记录 {Ui.StatusText(latest?.Status)}，{ProbePresentation.Speed(latest)}");
+                $"{row.Site.Name} 经由 {_route.Name}：每次探测一格；最新记录 {Ui.StatusText(latest?.Status)}，" +
+                (_speedMeasurementEnabled ? ProbePresentation.Speed(latest) : "周期网速检测已关闭"));
         }
         ResizePlot();
     }
@@ -112,7 +125,7 @@ internal sealed class RouteTimelineView : ContentView
             _needsScroll |= _charts.WidthRequest - _scroll.ScrollX <= _viewportWidth + 2;
             _viewportWidth = _scroll.Width;
         }
-        _charts.WidthRequest = Math.Max(_scroll.Width, _minutes * 5);
+        _charts.WidthRequest = Math.Max(_scroll.Width, Math.Min(_sampleTimes.Length * 5, 16000));
         if (_needsScroll)
         {
             _needsScroll = false;

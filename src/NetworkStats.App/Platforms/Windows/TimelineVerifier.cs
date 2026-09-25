@@ -21,7 +21,7 @@ internal static class TimelineVerifier
                 if (scenario == 1)
                 {
                     var sample = new ProbeResult(DateTimeOffset.UtcNow.AddMinutes(-3), site.Id, "direct", ProbeStatus.Healthy, 100, 200, null);
-                    expectedMinute = DateTimeOffset.FromUnixTimeSeconds(sample.Minute * 60);
+                    expectedMinute = sample.SampleTime;
                     await history.RecordAsync([sample], 168, timeout.Token);
                 }
                 await monitor.SaveSettingsAsync(original with { Sites = [site], Proxies = [], TimeoutSeconds = 10 });

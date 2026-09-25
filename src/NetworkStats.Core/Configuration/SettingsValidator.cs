@@ -66,7 +66,7 @@ public static class SettingsValidator
             else if (proxy.Port is < 1 or > 65535)
                 errors.Add($"代理 {proxy.Name} 的端口必须在 1 至 65535 之间");
             else
-                proxies.Add(new(proxy.Name.Trim(), protocol, host.ToLowerInvariant(), proxy.Port));
+                proxies.Add(new(proxy.Name.Trim(), protocol, host.ToLowerInvariant(), proxy.Port, proxy.SpeedMeasurementEnabled));
         }
         if (proxies.Select(proxy => proxy.Id).Distinct().Count() != proxies.Count)
             errors.Add("代理地址不能重复");

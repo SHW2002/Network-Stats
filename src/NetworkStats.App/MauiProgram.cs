@@ -17,6 +17,7 @@ public static class MauiProgram
 #endif
         builder.Services.AddSingleton(_ => new SettingsStore(AppStorage.DataDirectory, new MonitorSettings()));
         builder.Services.AddSingleton(_ => new HistoryStore(AppStorage.DataDirectory));
+        builder.Services.AddSingleton<WebsiteAvailabilityProbe>();
         builder.Services.AddSingleton<WebsiteProbe>();
         builder.Services.AddSingleton<DownloadSpeedProbe>();
         builder.Services.AddSingleton<MonitorEngine>();

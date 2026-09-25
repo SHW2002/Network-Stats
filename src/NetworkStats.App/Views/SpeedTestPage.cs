@@ -58,7 +58,7 @@ internal sealed class SpeedTestPage : ContentPage
                     {
                         Ui.Text("测速线路", 13, bold: true), _route,
                         Ui.Text("已配置的目标 URL", 13, bold: true), _site, _url,
-                        Ui.Text("直接访问所选网站设置中的 URL。主界面会自动按周期测量，也可以在这里单独复测。", 12, Ui.Muted),
+                        Ui.Text("直接访问所选网站设置中的 URL。开启周期网速检测后主界面也会自动测量；这里始终可以手动单独测速。", 12, Ui.Muted),
                         new HorizontalStackLayout { Spacing = 12, Children = { _start, _cancel } }
                     } }),
                     Ui.Card(new VerticalStackLayout { Spacing = Ui.Space(14), Children =

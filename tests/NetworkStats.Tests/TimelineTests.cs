@@ -17,17 +17,17 @@ internal static class TimelineTests
         var previous = new ProbeResult(minute.AddMinutes(-1), site.Id, "direct", ProbeStatus.Healthy, 10, 200, null);
         var before = TimelineWindow.Create([previous], settings, 60, minute.AddSeconds(-1));
         var pending = TimelineWindow.Create([previous], settings, 60, minute.AddSeconds(20));
-        Check.That(before.End == pending.End && before.Start == pending.Start && pending.Samples.SequenceEqual([previous]),
-            "Clock boundary created a trailing empty minute before results arrived");
-        // 完成跨分钟的一轮，按整轮开始时间而非最后一个请求开始时间归档。
+        Check.That(before.End == pending.End && pending.Samples.SequenceEqual([previous]) &&
+            before.Start < pending.Start, "A clock boundary should move the range without inventing a probe cell");
+        // 完成跨分钟的一轮，按整轮开始时间排列，而不是按分钟归档。
         var current = previous with { CheckedAt = minute.AddMinutes(1).AddSeconds(5), RoundStartedAt = minute.AddSeconds(50) };
         var completed = TimelineWindow.Create([previous, current], settings, 60, minute.AddMinutes(1).AddSeconds(10));
-        Check.That(completed.End == minute && current.Minute == minute.ToUnixTimeSeconds() / 60 &&
-            completed.Samples.Last() == current, "Round spanning a minute created a future empty column");
+        Check.That(completed.End == current.SampleTime && completed.Samples.SequenceEqual([previous, current]),
+            "A round spanning a minute did not create one cell for the completed probe");
         var later = current with { CheckedAt = minute.AddMinutes(4), RoundStartedAt = minute.AddMinutes(4) };
         var resumed = TimelineWindow.Create([previous, current, later], settings, 5, minute.AddMinutes(4).AddSeconds(2));
-        Check.That(resumed.Start == minute && resumed.End == minute.AddMinutes(4) && resumed.Samples.Length == 2,
-            "Unmeasured gap minutes were filled or collapsed");
+        Check.That(resumed.End == later.SampleTime && resumed.Samples.SequenceEqual([current, later]),
+            "Unmeasured time did not remain empty between probe cells");
         var removed = later with { SiteId = "removed-site", CheckedAt = minute.AddMinutes(5), RoundStartedAt = null };
         var unrelated = TimelineWindow.Create([previous, removed], settings, 60, minute.AddMinutes(5));
         Check.That(unrelated.End == before.End, "Removed configuration advanced the visible timeline");
@@ -50,14 +50,15 @@ internal static class TimelineTests
         await engine.StartAsync();
         await Check.EventuallyAsync(() => server.Requests == 2, "Round did not reach both targets");
         var pending = engine.Snapshot();
-        Check.That(pending.Worker.Running && pending.WindowEnd?.ToUnixTimeSeconds() / 60 == seeds[0].Minute &&
-            pending.Samples.Length == 2, "Partially completed round shifted the timeline or exposed partial results");
+        Check.That(pending.Worker.Running && pending.WindowEnd == seeds[0].SampleTime &&
+            pending.Samples.Length == 2,
+            $"Partially completed round shifted the timeline or exposed partial results: running={pending.Worker.Running}, end={pending.WindowEnd:O}, seed={seeds[0].SampleTime:O}, count={pending.Samples.Length}");
         server.ReleaseResponse.TrySetResult();
         await Check.EventuallyAsync(() => engine.Status.LastCompletedAt is not null, "Round did not publish");
         var completed = engine.Snapshot();
         var latest = completed.Samples.Where(sample => sample.RoundStartedAt == engine.Status.LastStartedAt).ToArray();
-        Check.That(latest.Length == 2 && latest.All(sample => sample.Minute == completed.WindowEnd!.Value.ToUnixTimeSeconds() / 60),
-            "Completed round did not advance every configured row together");
+        Check.That(latest.Length == 2 && latest.All(sample => sample.SampleTime == completed.WindowEnd),
+            "Completed round did not create one aligned cell per configured row");
         Check.That(completed.Samples.Length == 4, "Publishing a round replaced historical samples");
         var loaded = new HistoryStore(directory.Path);
         await loaded.LoadAsync(168);

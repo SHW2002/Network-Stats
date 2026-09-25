@@ -26,7 +26,7 @@ internal static class HttpFailureTests
     {
         await using var server = await LocalHttpServer.StartAsync();
         var route = new RouteDefinition("direct", "直连", null);
-        var settings = new MonitorSettings { TimeoutSeconds = 5 };
+        var settings = new MonitorSettings { SpeedMeasurementEnabled = true, TimeoutSeconds = 5 };
         var probe = new WebsiteProbe();
         var cases = new (string Path, int Code, string Hint)[]
         {

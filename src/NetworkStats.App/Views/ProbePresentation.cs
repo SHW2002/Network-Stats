@@ -26,9 +26,11 @@ internal static class ProbePresentation
 
     public static string Describe(CellSelection selection)
     {
-        var prefix = $"{selection.Site.Name} / {selection.Route.Name} · {selection.Minute.ToLocalTime():MM-dd HH:mm}\nURL：{selection.Site.Url}";
+        var prefix = $"{selection.Site.Name} / {selection.Route.Name} · {selection.SampleTime.ToLocalTime():MM-dd HH:mm:ss}\nURL：{selection.Site.Url}";
         if (selection.Sample is not { } sample) return $"{prefix}\n无数据：这一分钟没有完成的探测。";
-        var timingLabel = sample.Transfer is null ? "响应头耗时（旧版）" : "访问总耗时";
+        var timingLabel = sample.Transfer is null
+            ? selection.SpeedMeasurementEnabled ? "响应头耗时（旧版）" : "响应耗时"
+            : "访问总耗时";
         var text = $"{prefix}\n{Ui.StatusText(sample.Status)} · {timingLabel} {sample.LatencyMs:N0} ms" +
             (sample.HttpStatus is { } code ? $" · HTTP {code}" : "") +
             $" · 采样于 {sample.CheckedAt.ToLocalTime():HH:mm:ss}";
@@ -56,7 +58,9 @@ internal static class ProbePresentation
                 ? "\n浏览器速度 = 正文传输字节 / 从首字节到正文结束的时间；总耗时另含浏览器准备、连接与响应等待。"
                 : "\n下载速度 = 响应体字节数 / 响应体读取时间；访问总耗时另含连接和响应等待。";
         }
-        else text += "\n旧版记录只包含响应头耗时，没有下载速度数据。";
+        else text += selection.SpeedMeasurementEnabled
+            ? "\n旧版记录只包含响应头耗时，没有下载速度数据。"
+            : "\n周期网速检测已关闭，本次只获取响应头，没有读取响应体。";
         return text + (sample.Error is { } error ? $"\n{error}" : "");
     }
 }

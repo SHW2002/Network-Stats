@@ -20,9 +20,13 @@ internal static class PreferenceVerifier
                 settings.Appearance.SelectedTheme = mode;
                 settings.Appearance.MinimizeOnClose = true;
                 settings.Startup.Enabled = mode != ThemeMode.Light;
+                settings.SpeedMeasurement.Enabled = mode == ThemeMode.Dark;
+                settings.DirectSpeedMeasurement.Enabled = mode != ThemeMode.Light;
                 await settings.SaveAsync(); // 使用实际保存按钮的入口，验证配置与 UI 一起生效。
                 var restored = new SettingsStore(AppStorage.DataDirectory, new MonitorSettings()).Current;
                 if (restored.Theme != mode || !restored.MinimizeOnClose || restored.LaunchOnStartup != (mode != ThemeMode.Light) ||
+                    restored.SpeedMeasurementEnabled != (mode == ThemeMode.Dark) ||
+                    restored.DirectSpeedMeasurementEnabled != (mode != ThemeMode.Light) ||
                     Startup.StartupServices.Current.Read().Registered != restored.LaunchOnStartup)
                     throw new InvalidOperationException("Appearance preferences were not persisted by the settings page.");
                 await CheckThemeAsync(mode);

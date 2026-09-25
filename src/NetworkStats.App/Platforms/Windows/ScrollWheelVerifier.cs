@@ -78,6 +78,7 @@ internal static class ScrollWheelVerifier
 
     private static async Task CheckHorizontalAsync(NativeScrollViewer outer, NativeScrollViewer timeline, Microsoft.UI.Xaml.Window window)
     {
+        if (timeline.ScrollableWidth <= 1) return;
         timeline.ChangeView(timeline.ScrollableWidth / 2, null, null, true);
         await Task.Delay(100);
         var vertical = outer.VerticalOffset;

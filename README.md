@@ -4,25 +4,25 @@
 
 English | [简体中文](README_CN.md)
 
-Track website availability, response time, and response-body download speed on a timeline, with continuous monitoring of direct and proxy connections.
+Track website availability and response time on a timeline, with optional response-body speed measurements for direct and proxy connections.
 
 **Useful for users who access websites through proxies**: monitor multiple websites and compare direct, HTTP, HTTPS, and SOCKS5 connections to identify connectivity or stability problems, using your existing proxy service.
 
 ## Getting started
 
 1. Download your platform's package from [GitHub Releases](https://github.com/SHW2002/Network-Stats/releases/latest): **Network-Stats.exe** for Windows x64, APK for Android arm64, or ZIP for Apple Silicon / Intel macOS. iOS packages currently target the Xcode Simulator.
-2. Open **Settings**, add websites and proxy addresses, and save to start monitoring. Direct connections are always included. Local proxies usually use `127.0.0.1` and the port provided by your proxy software.
+2. Open **Settings**, add websites and proxy addresses, and save to start monitoring. Periodic speed measurement is off by default and can be enabled manually; direct and each proxy route have independent switches, and the estimated maximum hourly traffic is shown beside the option. Direct connections are always included. Local proxies usually use `127.0.0.1` and the port provided by your proxy software.
 3. Read the timeline: green means healthy, yellow means slow, red means unavailable, and an empty cell means no data. Select the last 1, 3, 6, or 24 hours and click a cell for details.
-4. Use **Test now** to refresh all results or **Single-site test** to retest one website. Check for and install updates in **Settings → Software updates**, with a separate proxy setting for updates.
+4. Use **Probe now** to refresh all results or **Single-site test** to measure one website manually. The main traffic metric separates estimated hourly availability-probe and speed-test usage. Check for and install updates in **Settings → Software updates**, with a separate proxy setting for updates.
 
 On Windows, monitoring continues in the system tray when minimized. Double-click the tray icon to restore the window or right-click to exit. Settings include light/dark themes, launch at login, and window-close behavior.
 
-Speed measurements describe transfers from the target URL, rather than your connection's maximum bandwidth. Small samples are explicitly indicated. Settings and history are stored locally.
+Speed measurements describe transfers from the target URL, rather than your connection's maximum bandwidth. When periodic speed measurement is disabled, monitoring reads response headers only; single-site tests remain available. Small samples are explicitly indicated. Settings and history are stored locally.
 
 ## Development
 
 - **.NET 10 + .NET MAUI** provides native interfaces for Windows, Android, iOS, and macOS (Mac Catalyst).
-- **GraphicsView** draws per-minute network status timelines; Windows uses WinUI 3.
+- **GraphicsView** draws one cell per completed probe; the selected time range determines equally spaced axis labels at adaptive integer 10-minute intervals, with a visible leftmost time tick and a fixed **Now** marker at the right edge. Windows uses WinUI 3.
 - **NetworkStats.Core** contains HTTP probes, proxies, scheduling, history storage, and update logic. **NetworkStats.App** contains the UI and platform integrations.
 - Current releases include Windows x64, Android arm64, macOS arm64 / x64, and iOS Simulator arm64 / x64. iOS device packages require Apple developer signing. macOS packages are ad-hoc signed and are not notarized.
 

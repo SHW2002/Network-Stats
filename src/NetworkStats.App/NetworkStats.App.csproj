@@ -12,9 +12,9 @@
     <MauiVersion>10.0.110</MauiVersion>
     <ApplicationTitle>Network Stats</ApplicationTitle>
     <ApplicationId>com.networkstats.monitor</ApplicationId>
-    <ApplicationDisplayVersion>1.4.4</ApplicationDisplayVersion>
-    <ApplicationVersion>12</ApplicationVersion>
-    <Version>1.4.4</Version>
+    <ApplicationDisplayVersion>1.6.4</ApplicationDisplayVersion>
+    <ApplicationVersion>18</ApplicationVersion>
+    <Version>1.6.4</Version>
     <DefineConstants Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
@@ -23,6 +23,9 @@
     <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">true</WindowsAppSDKSelfContained>
+    <!-- Windows App SDK 在生成自包含清单时就必须知道最终是单文件发布，否则干净构建会漏掉解压目录重定向。 -->
+    <PublishSingleFile Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows' And '$(Configuration)' == 'Release'">true</PublishSingleFile>
+    <IncludeAllContentForSelfExtract Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows' And '$(Configuration)' == 'Release'">true</IncludeAllContentForSelfExtract>
     <ApplicationIcon Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">Platforms/Windows/app.ico</ApplicationIcon>
     <!-- WinUI 资源索引依赖程序集名称，直接编译最终文件名，不能在发布后重命名 EXE。 -->
     <AssemblyName Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">Network-Stats</AssemblyName>

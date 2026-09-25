@@ -12,15 +12,16 @@ public sealed class MainPage : ContentPage
     private readonly Label _status = Ui.Text("正在启动", 12, Ui.Accent, true);
     private readonly Label _schedule = Ui.Text("正在准备首次探测…", 12, Ui.Muted);
     private readonly Label _warning = Ui.Text("", 12, Ui.Red);
-    private readonly Label _detail = Ui.Text("点击任意色块，查看该 URL 的下载速度、访问总耗时、响应等待和下载量。", 12, Ui.Muted);
+    private readonly Label _detail = Ui.Text("点击任意色块，查看该 URL 的可访问性与响应耗时。", 12, Ui.Muted);
     private readonly Label _policy = Ui.Text("", 11, Ui.Muted);
     private readonly Label _timelineStatus = Ui.Text("首次探测完成后显示时间图", 11, Ui.Muted);
-    private readonly Button _probe = Ui.Button("立即测速", true);
+    private readonly Button _probe = Ui.Button("立即探测", true);
     private readonly Button _pause = Ui.Button("暂停");
     private readonly MetricCard _available = new("最新可访问", "—", "全部网站 × 全部线路");
     private readonly MetricCard _latency = new("平均访问耗时", "—", "最新成功 URL 请求的总耗时");
     private readonly MetricCard _routes = new("探测线路", "1", "直接连接始终保留");
     private readonly MetricCard _rate = new("窗口可用率", "—", "仅统计有数据的色块");
+    private readonly MetricCard _traffic = new("每小时预估流量", "Ping —", "测速 —", 18);
     private readonly Grid _metrics = new() { ColumnSpacing = Ui.Space(12), RowSpacing = Ui.Space(12) };
     private readonly Grid _controls = new() { ColumnSpacing = Ui.Space(16), RowSpacing = Ui.Space(10) };
     private readonly VerticalStackLayout _statusBlock;
@@ -34,6 +35,8 @@ public sealed class MainPage : ContentPage
     internal bool HasDrawnCurrentTheme => _routeViews.Count > 0 && _routeViews.All(route => route.HasDrawnCurrentTheme);
     internal bool HasUrlSpeedReadings => _routeViews.Any(route => route.HasSpeedReadings);
     internal bool HasShortSampleHints => _routeViews.Any(route => route.HasShortSampleHints);
+    internal bool HasSeparatedTrafficEstimate => _traffic.ValueText.StartsWith("Ping ") &&
+        _traffic.NoteText.StartsWith("测速 ");
     internal bool TimelineVisible => _routeList.IsVisible;
     internal DateTimeOffset? DisplayedMinute { get; private set; }
     internal string? GetSpeedText(string siteId, string routeId) =>
@@ -63,7 +66,7 @@ public sealed class MainPage : ContentPage
         {
             Spacing = Ui.Space(7),
             Children = { Ui.Text($"NETWORK STATS · v{AppInfo.Current.VersionString}", 11, Ui.Accent, true), Ui.Text("网络观测站", 28, bold: true),
-                Ui.Text($"{PlatformName()} · 每个 URL 的下载速度与访问总耗时", 12, Ui.Muted) }
+                Ui.Text($"{PlatformName()} · 网站可访问性与响应耗时 · 可按需开启周期网速检测", 12, Ui.Muted) }
         });
         header.Add(settings, 1);
         settings.VerticalOptions = LayoutOptions.Center;
@@ -154,10 +157,10 @@ public sealed class MainPage : ContentPage
         DisplayedMinute = snapshot.WindowEnd;
         _routeList.IsVisible = snapshot.WindowEnd is not null;
         _timelineStatus.Text = snapshot.WindowEnd is { } end
-            ? $"每格 1 分钟 · 截至 {end.ToLocalTime():MM-dd HH:mm} · 探测完成后更新"
+            ? $"每次探测一格 · 截至 {end.ToLocalTime():MM-dd HH:mm:ss} · 探测完成后更新"
             : snapshot.Active ? "正在探测，完成后显示时间图…" : "暂无探测结果，开始探测后显示时间图";
         var routes = snapshot.Settings.GetRoutes();
-        var configuration = string.Join('|', routes.Select(route => $"{route.Id}:{route.Name}")) +
+        var configuration = string.Join('|', routes.Select(route => $"{route.Id}:{route.Name}:{route.SpeedMeasurementEnabled}")) +
             string.Join('|', snapshot.Settings.Sites.Select(site => $"{site.Id}:{site.Name}"));
         if (configuration != _configuration)
         {
@@ -174,15 +177,22 @@ public sealed class MainPage : ContentPage
         var siteIds = snapshot.Settings.Sites.Select(site => site.Id).ToHashSet();
         var routeIds = routes.Select(route => route.Id).ToHashSet();
         var relevant = snapshot.Samples.Where(sample => siteIds.Contains(sample.SiteId) && routeIds.Contains(sample.RouteId)).ToArray();
-        var samples = relevant.ToDictionary(sample => (sample.Minute, sample.SiteId, sample.RouteId));
-        foreach (var view in _routeViews) view.Update(snapshot, samples);
+        foreach (var view in _routeViews) view.Update(snapshot, relevant);
         var latest = relevant.GroupBy(sample => (sample.SiteId, sample.RouteId))
             .Select(group => group.MaxBy(sample => sample.CheckedAt)!).ToArray();
         var successful = latest.Where(sample => sample.Status != ProbeStatus.Unreachable).ToArray();
         _available.Update($"{successful.Length} / {siteIds.Count * routeIds.Count}");
-        _latency.Update(successful.Length == 0 ? "—" : $"{successful.Average(sample => sample.LatencyMs):N0} ms");
+        _latency.Update(successful.Length == 0 ? "—" : $"{successful.Average(sample => sample.LatencyMs):N0} ms",
+            snapshot.Settings.SpeedMeasurementEnabled ? "最新成功 URL 请求的总耗时" : "最新成功请求的响应头耗时");
         _routes.Update(routes.Length.ToString(), $"直连 + {snapshot.Settings.Proxies.Length} 个代理");
         _rate.Update(relevant.Length == 0 ? "—" : $"{100.0 * relevant.Count(sample => sample.Status != ProbeStatus.Unreachable) / relevant.Length:0.0}%");
+        var pingBytes = SpeedMeasurementTraffic.EstimateAvailabilityHourlyBytes(
+            snapshot.Settings.IntervalSeconds, siteIds.Count, routeIds.Count);
+        var speedBytes = SpeedMeasurementTraffic.EstimateEnabledHourlyBytes(snapshot.Settings);
+        _traffic.Update($"Ping ≈ {SpeedMeasurementSettingsView.FormatBytes(pingBytes)}",
+            snapshot.Settings.SpeedMeasurementEnabled
+                ? $"测速 ≤ {SpeedMeasurementSettingsView.FormatBytes(speedBytes)}"
+                : "测速 0 MB（已关闭）");
         _status.Text = !snapshot.Active ? "●  已暂停" : snapshot.Worker.Running ? "●  正在探测" : "●  持续监测中";
         Ui.TextColor(_status, snapshot.Active ? Ui.Accent : Ui.Muted);
         _schedule.Text = !snapshot.Active ? "暂停期间不会产生记录" : snapshot.Worker.Running
@@ -192,7 +202,11 @@ public sealed class MainPage : ContentPage
         _pause.Text = _monitor.UserPaused ? "继续探测" : "暂停";
         _warning.Text = snapshot.Worker.Error ?? snapshot.Warning ?? "";
         _warning.IsVisible = !string.IsNullOrEmpty(_warning.Text);
-        _policy.Text = $"总耗时：绿色 ≤ {snapshot.Settings.SlowThresholdMs:N0} ms · 黄色 > {snapshot.Settings.SlowThresholdMs:N0} ms · 超时 {snapshot.Settings.TimeoutSeconds} 秒 · 每 {snapshot.Settings.IntervalSeconds} 秒采样 · 历史保留 {snapshot.Settings.RetentionHours} 小时\n下载速度 = 响应体字节数 / 响应体读取时间，连接和响应等待另计入总耗时。每个 URL 最多读取 1 MB；不足 1 MB 或读取不足 2 秒时标注样本较小。";
+        _policy.Text = $"每次已完成探测显示一格 · 时间范围 {snapshot.RangeMinutes} 分钟 · 响应耗时：绿色 ≤ {snapshot.Settings.SlowThresholdMs:N0} ms · 黄色 > {snapshot.Settings.SlowThresholdMs:N0} ms · 超时 {snapshot.Settings.TimeoutSeconds} 秒 · 探测间隔 {snapshot.Settings.IntervalSeconds} 秒 · 历史保留 {snapshot.Settings.RetentionHours} 小时\n" +
+            $"Ping 流量按每次可访问性请求约 {SpeedMeasurementTraffic.EstimatedAvailabilityBytesPerSample / 1000} KB 估算。" +
+            (snapshot.Settings.SpeedMeasurementEnabled
+                ? "测速流量按每个 URL 每条线路每轮最多 1 MB 估算；下载速度只使用响应体读取时间。"
+                : "周期网速检测已关闭，不会主动读取响应体；仍可使用“单项测速”。");
     }
 
     private void SelectCell(CellSelection selection)
@@ -221,13 +235,14 @@ public sealed class MainPage : ContentPage
             _controls.RowDefinitions.Add(new(GridLength.Auto));
             _controls.Add(_buttons, 0, 1);
         }
-        var columns = Width >= 760 ? 4 : 2;
+        var columns = Width >= 900 ? 5 : Width >= 650 ? 3 : 2;
         _metrics.Clear();
         _metrics.ColumnDefinitions.Clear();
         _metrics.RowDefinitions.Clear();
         for (var i = 0; i < columns; i++) _metrics.ColumnDefinitions.Add(new(GridLength.Star));
-        for (var i = 0; i < 4 / columns; i++) _metrics.RowDefinitions.Add(new(GridLength.Auto));
-        View[] cards = [_available, _latency, _routes, _rate];
+        View[] cards = [_available, _latency, _routes, _rate, _traffic];
+        for (var i = 0; i < (cards.Length + columns - 1) / columns; i++)
+            _metrics.RowDefinitions.Add(new(GridLength.Auto));
         for (var i = 0; i < cards.Length; i++) _metrics.Add(cards[i], i % columns, i / columns);
     }
 

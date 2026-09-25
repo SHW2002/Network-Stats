@@ -20,7 +20,7 @@ internal static class TransferTimingTests
         Check.That(result.ShortSample, "Small page was presented as sustained throughput");
 
         var sample = await new WebsiteProbe().CheckAsync(new("delayed", url), route,
-            new MonitorSettings { TimeoutSeconds = 5, SlowThresholdMs = 1000 }, default);
+            new MonitorSettings { SpeedMeasurementEnabled = true, TimeoutSeconds = 5, SlowThresholdMs = 1000 }, default);
         var transfer = sample.Transfer!;
         Check.That(sample.Status == ProbeStatus.Slow && sample.LatencyMs >= 1500 && transfer.ResponseWaitMilliseconds >= 900,
             "Visit latency/color lost the server wait while separating download speed");

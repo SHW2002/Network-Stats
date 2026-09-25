@@ -8,7 +8,7 @@ namespace NetworkStats.Storage;
 public sealed class HistoryStore(string dataDirectory)
 {
     private readonly string _directory = Path.Combine(dataDirectory, "history");
-    private readonly Dictionary<(long Minute, string Site, string Route), ProbeResult> _samples = [];
+    private readonly Dictionary<(string Site, string Route), List<ProbeResult>> _samples = [];
     private readonly object _gate = new();
     private readonly SemaphoreSlim _fileGate = new(1, 1);
     public string? Warning { get; private set; }
@@ -42,10 +42,8 @@ public sealed class HistoryStore(string dataDirectory)
 
     public ProbeResult[] Query(DateTimeOffset start, DateTimeOffset end)
     {
-        var first = start.ToUnixTimeSeconds() / 60;
-        var last = end.ToUnixTimeSeconds() / 60;
         lock (_gate)
-            return _samples.Values.Where(sample => sample.Minute >= first && sample.Minute <= last).ToArray();
+            return QueryLocked(start, end);
     }
 
     public async Task RecordAsync(IEnumerable<ProbeResult> samples, int retentionHours, CancellationToken cancellationToken)
@@ -88,17 +86,59 @@ public sealed class HistoryStore(string dataDirectory)
 
     public TimelineWindow LatestWindow(MonitorSettings settings, int minutes, DateTimeOffset now)
     {
-        lock (_gate) return TimelineWindow.Create(_samples.Values, settings, minutes, now);
+        var start = now.AddMinutes(-minutes);
+        var retentionStart = now.AddHours(-settings.RetentionHours);
+        if (start < retentionStart) start = retentionStart;
+        lock (_gate) return TimelineWindow.Create(QueryLocked(start, now), settings, minutes, now);
     }
 
     private void Put(ProbeResult sample)
     {
         lock (_gate)
         {
-            var key = (sample.Minute, sample.SiteId, sample.RouteId);
-            if (!_samples.TryGetValue(key, out var existing) || existing.CheckedAt <= sample.CheckedAt)
-                _samples[key] = sample;
+            var key = (sample.SiteId, sample.RouteId);
+            if (!_samples.TryGetValue(key, out var values)) _samples[key] = values = [];
+            var low = 0;
+            var high = values.Count;
+            while (low < high)
+            {
+                var middle = low + (high - low) / 2;
+                if (values[middle].SampleTime <= sample.SampleTime) low = middle + 1;
+                else high = middle;
+            }
+            var sameRound = low > 0 && values[low - 1].SampleTime == sample.SampleTime;
+            if (sameRound)
+            {
+                if (values[low - 1].CheckedAt <= sample.CheckedAt) values[low - 1] = sample;
+                return;
+            }
+            values.Insert(low, sample);
         }
+    }
+
+    private ProbeResult[] QueryLocked(DateTimeOffset start, DateTimeOffset end)
+    {
+        var matches = new List<ProbeResult>();
+        foreach (var values in _samples.Values)
+        {
+            var low = LowerBound(values, start);
+            for (var index = low; index < values.Count && values[index].SampleTime <= end; index++)
+                matches.Add(values[index]);
+        }
+        return matches.OrderBy(sample => sample.SampleTime).ThenBy(sample => sample.CheckedAt).ToArray();
+    }
+
+    private static int LowerBound(List<ProbeResult> values, DateTimeOffset time)
+    {
+        var low = 0;
+        var high = values.Count;
+        while (low < high)
+        {
+            var middle = low + (high - low) / 2;
+            if (values[middle].SampleTime < time) low = middle + 1;
+            else high = middle;
+        }
+        return low;
     }
 
     private void Prune(int retentionHours)
@@ -106,8 +146,12 @@ public sealed class HistoryStore(string dataDirectory)
         var cutoff = DateTimeOffset.UtcNow.AddHours(-retentionHours);
         lock (_gate)
         {
-            foreach (var key in _samples.Where(pair => pair.Value.CheckedAt < cutoff).Select(pair => pair.Key).ToArray())
-                _samples.Remove(key);
+            foreach (var key in _samples.Keys.ToArray())
+            {
+                var values = _samples[key];
+                values.RemoveAll(sample => sample.CheckedAt < cutoff);
+                if (values.Count == 0) _samples.Remove(key);
+            }
         }
         foreach (var path in Directory.EnumerateFiles(_directory, "*.jsonl"))
         {

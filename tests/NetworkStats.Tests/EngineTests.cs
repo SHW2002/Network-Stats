@@ -19,6 +19,7 @@ internal static class EngineTests
         listener.Stop();
         var settings = new MonitorSettings
         {
+            SpeedMeasurementEnabled = true,
             Sites = [new("target", target.Address + "/download-slow?source=configured")],
             Proxies = [new("working", "http", "127.0.0.1", new Uri(proxy.Address).Port),
                 new("unavailable", "http", "127.0.0.1", unusedPort)]
@@ -58,7 +59,7 @@ internal static class EngineTests
         var completed = engine.Status.LastCompletedAt;
         Check.That(engine.RequestProbe(), "Manual probe was rejected while idle");
         await Check.EventuallyAsync(() => engine.Status.LastCompletedAt > completed, "Manual probe did not run");
-        Check.That(engine.Snapshot().Samples.Length is >= 4 and <= 8, "Minute buckets duplicated results");
+        Check.That(engine.Snapshot().Samples.Length is >= 4 and <= 8, "Probe history duplicated results");
         await engine.SetPausedAsync(true);
         Check.That(!engine.IsActive && !engine.Status.Running && engine.Status.NextRunAt is null, "Pause left work running");
         Check.That(!engine.RequestProbe(), "Paused engine accepted a request");

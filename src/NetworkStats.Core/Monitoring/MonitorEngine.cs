@@ -83,14 +83,14 @@ public sealed class MonitorEngine(SettingsStore settings, HistoryStore history, 
         Notify();
     }
 
-    public MonitorSnapshot Snapshot(int minutes = 60)
+    public MonitorSnapshot Snapshot(int rangeMinutes = 60)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(minutes, 1);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(minutes, 1440);
+        ArgumentOutOfRangeException.ThrowIfLessThan(rangeMinutes, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(rangeMinutes, 1440);
         var now = DateTimeOffset.UtcNow;
         var current = Settings;
-        var window = history.LatestWindow(current, minutes, now);
-        return new(now, window.Start, minutes, current, Status, IsActive,
+        var window = history.LatestWindow(current, rangeMinutes, now);
+        return new(now, window.Start, rangeMinutes, current, Status, IsActive,
             window.Samples, HistoryWarning, window.End);
     }
 
@@ -147,6 +147,6 @@ public sealed class MonitorEngine(SettingsStore settings, HistoryStore history, 
     }
 }
 
-public sealed record MonitorSnapshot(DateTimeOffset Now, DateTimeOffset WindowStart, int Minutes,
+public sealed record MonitorSnapshot(DateTimeOffset Now, DateTimeOffset WindowStart, int RangeMinutes,
     MonitorSettings Settings, WorkerStatus Worker, bool Active, ProbeResult[] Samples, string? Warning,
     DateTimeOffset? WindowEnd = null);

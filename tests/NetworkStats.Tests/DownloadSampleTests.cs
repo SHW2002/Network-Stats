@@ -53,7 +53,7 @@ internal static class DownloadSampleTests
                 "Live progress leaked a buffered speed before the final result");
         }
         var sample = await new WebsiteProbe().CheckAsync(new("small", server.Address + "/download-small-buffered"),
-            direct, new MonitorSettings { TimeoutSeconds = 5, SlowThresholdMs = 100 }, default);
+            direct, new MonitorSettings { SpeedMeasurementEnabled = true, TimeoutSeconds = 5, SlowThresholdMs = 100 }, default);
         Check.That(sample is { Status: ProbeStatus.Slow, LatencyMs: >= 250,
             Transfer: { BytesReceived: 4096, InsufficientSample: true, MegabytesPerSecond: null } },
             "Automatic small-page sample lost its reachability, bytes or visit latency");
